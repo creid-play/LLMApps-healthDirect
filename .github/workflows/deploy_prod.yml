@@ -33,8 +33,8 @@ jobs:
           version: 11.x.x
       - name: Debug Auth
         run: |
-          echo "CLIENTID length: ${#CLIENTID}"
-          echo "CLIENTSECRET length: ${#CLIENTSECRET}"
+          echo "CLIENTID length: ${{ secrets.CLIENTID }}"
+          echo "CLIENTSECRET length: ${{ secrets.CLIENTSECRET }}"
           echo "TECHNICALACCOUNTID: ${{ secrets.TECHNICALACCOUNTID }}"
           echo "IMSORGID: ${{ secrets.IMSORGID }}"
       - name: Auth
