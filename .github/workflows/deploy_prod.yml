@@ -33,10 +33,12 @@ jobs:
           version: 11.x.x
       - name: Debug Auth
         run: |
-          echo "CLIENTID length: ${{ secrets.CLIENTID }}"
-          echo "CLIENTSECRET length: ${{ secrets.CLIENTSECRET }}"
-          echo "TECHNICALACCOUNTID: ${{ secrets.TECHNICALACCOUNTID }}"
+          echo "CLIENTID: ${{ secrets.CLIENTID }}"
+          echo "CLIENTSECRET: ${{ secrets.CLIENTSECRET }}"
+          echo "TECHNICALACCOUNTID: ${{ secrets.TECHNICALACCID }}"
+          echo "TECHNICALACCOUNTEMAIL: ${{ secrets.TECHNICALACCEMAIL }}"
           echo "IMSORGID: ${{ secrets.IMSORGID }}"
+          echo "SCOPES: ${{ secrets.SCOPES }}"
       - name: Auth
         uses: adobe/aio-apps-action@4.1.0
         with:
