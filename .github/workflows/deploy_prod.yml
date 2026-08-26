@@ -31,6 +31,12 @@ jobs:
         with:
           os: ${{ matrix.os }}
           version: 11.x.x
+      - name: Debug Auth
+        run: |
+          echo "CLIENTID length: ${#CLIENTID}"
+          echo "CLIENTSECRET length: ${#CLIENTSECRET}"
+          echo "TECHNICALACCOUNTID: ${{ secrets.TECHNICALACCOUNTID }}"
+          echo "IMSORGID: ${{ secrets.IMSORGID }}"
       - name: Auth
         uses: adobe/aio-apps-action@4.1.0
         with:
