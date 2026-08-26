@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>weather-lookup widget</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 12px;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        color: #1d1d1f;
+        background: transparent;
+        line-height: 1.4;
+      }
+      .card {
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        padding: 16px 18px;
+        background: #fff;
+        max-width: 320px;
+      }
+      .location { font-weight: 600; font-size: 15px; margin: 0 0 4px; }
+      .conditions { color: #6e6e73; font-size: 13px; margin: 0 0 12px; }
+      .temp-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+      .temp { font-size: 36px; font-weight: 700; }
+      .feels-like { font-size: 12px; color: #6e6e73; }
+      .stats { display: flex; gap: 16px; border-top: 1px solid #f0f0f0; padding-top: 10px; }
+      .stat { font-size: 12px; color: #6e6e73; }
+      .stat strong { display: block; color: #1d1d1f; font-size: 13px; }
+      .empty { color: #6e6e73; font-style: italic; font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <div class="card" id="root">
+      <p class="empty">Loading weather…</p>
+    </div>
+
+    <script>
+      (async () => {
+        const root = document.getElementById('root')
+        try {
+          const data = await window.openai.toolOutput
+          if (!data || typeof data.temperatureF !== 'number') {
+            root.innerHTML = '<p class="empty">No weather data available.</p>'
+            return
+          }
+
+          root.innerHTML =
+            '<p class="location"></p>' +
+            '<p class="conditions"></p>' +
+            '<div class="temp-row">' +
+            '  <span class="temp"></span>' +
+            '  <span class="feels-like"></span>' +
+            '</div>' +
+            '<div class="stats">' +
+            '  <span class="stat">Humidity<strong class="humidity"></strong></span>' +
+            '  <span class="stat">Wind<strong class="wind"></strong></span>' +
+            '</div>'
+
+          root.querySelector('.location').textContent = data.location || 'Unknown location'
+          root.querySelector('.conditions').textContent = data.conditions || ''
+          root.querySelector('.temp').textContent = Math.round(data.temperatureF) + '°F'
+          root.querySelector('.feels-like').textContent =
+            typeof data.feelsLikeF === 'number' ? 'feels like ' + Math.round(data.feelsLikeF) + '°F' : ''
+          root.querySelector('.humidity').textContent =
+            typeof data.humidityPct === 'number' ? data.humidityPct + '%' : '—'
+          root.querySelector('.wind').textContent =
+            typeof data.windMph === 'number' ? Math.round(data.windMph) + ' mph' : '—'
+        } catch (err) {
+          root.innerHTML = '<p class="empty">No tool output available.</p>'
+        }
+      })()
+    </script>
+  </body>
+</html>
