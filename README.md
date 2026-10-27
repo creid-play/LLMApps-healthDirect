@@ -80,6 +80,21 @@ git push origin your-branch
 
 The deploy pipeline clones your repo, fetches the latest metadata from the API, writes `actions.json`, runs `npm install && npm run build`, and deploys to I/O Runtime. You don't build or deploy manually.
 
+## AEM Forms guide action
+
+The `aem-forms-guide` action has two operations:
+
+1. Call `discover` to list published forms, retrieve each form definition, and return its questions and available options. Use that information to help the user choose a form, then ask its questions one at a time in order.
+2. Review the collected answers with the user. Only after the user confirms, call `submit` with the returned `formId` and an `answersJson` object keyed by the form's field names.
+
+The handler uses the publish environment at `https://publish-p206352-e2156078.adobeaemcloud.com` for the forms list (`GET /adobe/forms/af/listforms`), form definitions (`GET /adobe/forms/{formId}`), and submissions (`POST /adobe/forms/af/v1/submit/{formId}`). The JSON submission body wraps the serialized answers as `data` and sets `contentType` to `application/json`.
+
+The MCP server does not require Adobe authentication (`require-adobe-auth: false` in `app.config.yaml`). The list and form-definition requests to the configured public publish host were verified to return HTTP 200 without credentials, so the handler does not use OAuth credentials. You can optionally set:
+
+- `AEM_FORMS_BASE_URL` to use another HTTPS AEM Cloud Service publish host; both listing and individual form requests use this same base URL.
+
+The `aem-forms-guide` action's title, description, and input schema must also be configured in the LLM Apps UI. `actions.json` is ignored local state; download it from the UI after configuring the action to test locally.
+
 ## Authoring with Claude (optional)
 
 This repo ships a Claude skill at [`.claude/skills/llm-apps-action-author/`](.claude/skills/llm-apps-action-author/SKILL.md) that automates steps 1 and 4. Claude Code and Cursor auto-discover it when you open this repo.
