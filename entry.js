@@ -25,6 +25,7 @@ governing permissions and limitations under the License.
 
 const { createMain } = require('@adobe/llm-apps-runtime')
 const { withRequestLogging } = require('./server/request-logging')
+const { ensureFormsGuideInputSchema } = require('./server/forms-guide-schema')
 
 // webpack resolves these at compile time relative to this file's directory.
 // The resulting context objects are passed to the runtime — it never calls
@@ -34,6 +35,8 @@ const htmlContext   = require.context('./actions', true, /widget\.html$/)
 
 let actionsConfig = {}
 try { actionsConfig = require('./actions.json') } catch (e) { /* no actions.json at build time */ }
+const availableActionNames = moduleContext.keys().map(key => key.split('/')[1])
+actionsConfig = ensureFormsGuideInputSchema(actionsConfig, availableActionNames)
 
 const app = createMain({ moduleContext, htmlContext, actionsConfig })
 app.main = withRequestLogging(app.main)

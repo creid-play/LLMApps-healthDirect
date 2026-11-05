@@ -87,7 +87,7 @@ The `aem-forms-guide` action has two operations. Call `discover` explicitly to l
 1. Call `discover` to list published forms, retrieve each form definition, and return its questions and available options. Use that information to help the user choose a form, then ask its questions one at a time in order.
 2. Review the collected answers with the user. Only after the user confirms, call `submit` with `operation: "submit"`, the returned `formId`, and an `answers` object keyed by the form's field names. The handler also accepts the legacy `answersJson` JSON string and infers `submit` if `formId`, `answers`, or `answersJson` is present but `operation` was omitted.
 
-The tool's input schema must be configured in the LLM Apps UI so submission arguments reach the handler. Define `operation` as a required string enum with `discover` and `submit` values, plus optional string `formId` and object `answers` properties. Without an input schema that includes these properties, the MCP runtime may omit or strip tool-call arguments; the handler cannot submit answers it never receives. For example:
+The server enforces the `operation`, `formId`, `answers`, and legacy `answersJson` properties at registration so those arguments are exposed to MCP clients even if the downloaded action metadata is incomplete. Keep the same schema configured in the LLM Apps UI so the published tool metadata stays aligned. The `operation` property is required; `formId` and `answers` are required by the handler for submit calls. Without a registered schema, the MCP runtime may omit or strip tool-call arguments before they reach the handler. For example:
 
 ```json
 {
