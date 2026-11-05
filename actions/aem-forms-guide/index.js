@@ -271,16 +271,14 @@ async function submitForm (baseUrl, formId, answers) {
 }
 
 module.exports = async (args = {}, extra = {}) => {
-    if (!args.operation) {
-        return textResult('Choose the "discover" operation to review published forms, or "submit" to send confirmed answers.')
-    }
+    const operation = args.operation || 'discover'
 
-    if (args.operation !== 'discover' && args.operation !== 'submit') {
+    if (operation !== 'discover' && operation !== 'submit') {
         throw new Error('operation must be either "discover" or "submit".')
     }
 
     let answers
-    if (args.operation === 'submit') {
+    if (operation === 'submit') {
         if (typeof args.formId !== 'string' || !args.formId.trim()) {
             throw new Error('formId is required when operation is "submit".')
         }
@@ -290,7 +288,7 @@ module.exports = async (args = {}, extra = {}) => {
     const { baseUrl: configuredBaseUrl } = readVariables(extra)
     const baseUrl = validateBaseUrl(configuredBaseUrl)
 
-    if (args.operation === 'discover') {
+    if (operation === 'discover') {
         return discoverForms(baseUrl)
     }
 

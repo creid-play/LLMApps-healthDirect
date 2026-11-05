@@ -82,7 +82,7 @@ The deploy pipeline clones your repo, fetches the latest metadata from the API, 
 
 ## AEM Forms guide action
 
-The `aem-forms-guide` action has two operations:
+The `aem-forms-guide` action has two operations. If the operation argument is omitted, the handler defaults to `discover`, which is read-only:
 
 1. Call `discover` to list published forms, retrieve each form definition, and return its questions and available options. Use that information to help the user choose a form, then ask its questions one at a time in order.
 2. Review the collected answers with the user. Only after the user confirms, call `submit` with the returned `formId` and an `answersJson` object keyed by the form's field names.

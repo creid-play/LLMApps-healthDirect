@@ -25,12 +25,22 @@ describe('aem-forms-guide handler', () => {
         delete global.fetch
     })
 
-    test('prompts for an operation when none is provided', async () => {
-        global.fetch = jest.fn()
+    test('defaults to discovery when no operation is provided', async () => {
+        mockFetch([
+            jsonResponse({
+                items: [{
+                    title: 'Benefits application',
+                    path: '/content/forms/af/benefits'
+                }]
+            }),
+            jsonResponse({ afModelDefinition: { ':items': {} } })
+        ])
+
         const out = await handler({})
 
-        expect(out.content[0].text).toMatch(/discover.*submit/i)
-        expect(global.fetch).not.toHaveBeenCalled()
+        expect(out.content[0].text).toContain('Benefits application')
+        expect(out.content[0].text).toContain('Published forms and their questions')
+        expect(global.fetch).toHaveBeenCalledTimes(2)
     })
 
     test('discovers published forms and returns fields in form order', async () => {
