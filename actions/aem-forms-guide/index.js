@@ -12,6 +12,10 @@ function textResult (text) {
     return { content: [{ type: 'text', text }] }
 }
 
+function textError (text) {
+    return { ...textResult(text), isError: true }
+}
+
 function readVariables (extra) {
     const variables = extra?.variables || {}
     return {
@@ -241,10 +245,9 @@ async function submitForm (baseUrl, formId, answers) {
         `/adobe/forms/af/submit/${encodeURIComponent(formId)}`,
         baseUrl
     )
-    console.log('[aem-forms-guide] submission request started')
-    const response = await fetch(submitUrl, {
+    const request = {
         method: 'POST',
-        redirect: 'manual',
+        url: submitUrl.toString(),
         headers: {
             accept: 'application/json',
             'content-type': 'application/json'
@@ -253,30 +256,55 @@ async function submitForm (baseUrl, formId, answers) {
             data: JSON.stringify(answers),
             contentType: 'application/json'
         })
-    })
+    }
+    const requestDetails = `\n\nRequest sent to AEM Forms:\n${JSON.stringify(request, null, 2)}`
+
+    console.log('[aem-forms-guide] submission request started')
+    let response
+    try {
+        response = await fetch(submitUrl, {
+            method: request.method,
+            redirect: 'manual',
+            headers: request.headers,
+            body: request.body
+        })
+    } catch (error) {
+        console.error('[aem-forms-guide] submission request failed before receiving a response')
+        return textError(
+            `AEM Forms submission request failed before receiving a response: ${error.message}.${requestDetails}`
+        )
+    }
 
     if (response.status >= 300 && response.status < 400) {
         console.error(`[aem-forms-guide] submission endpoint redirected the POST (HTTP ${response.status})`)
-        throw new Error(
+        return textError(
             `AEM Forms submission endpoint redirected the POST request (HTTP ${response.status}); ` +
-            'automatic redirects are disabled to prevent changing the submission method.'
+            `automatic redirects are disabled to prevent changing the submission method.${requestDetails}`
         )
     }
 
     if (!response.ok) {
         const allowedMethods = response.headers?.get?.('allow')
         console.error(`[aem-forms-guide] submission request failed (HTTP ${response.status})`)
-        throw new Error(
+        return textError(
             `AEM Forms submission failed (HTTP ${response.status})` +
             `${allowedMethods ? `; endpoint allows: ${allowedMethods}` : ''}. ` +
-            'Verify the publish host and the form submission configuration.'
+            `Verify the publish host and the form submission configuration.${requestDetails}`
         )
     }
 
     let result = {}
     const responseType = response.headers?.get?.('content-type') || ''
     if (responseType.includes('application/json')) {
-        result = await response.json()
+        try {
+            result = await response.json()
+        } catch (error) {
+            console.error('[aem-forms-guide] could not parse the submission response')
+            return textError(
+                `AEM Forms returned HTTP ${response.status}, but its JSON response could not be parsed: ` +
+                `${error.message}.${requestDetails}`
+            )
+        }
     }
 
     const submissionId = result?.submissionId
@@ -285,7 +313,9 @@ async function submitForm (baseUrl, formId, answers) {
 
     const outcome = response.status === 202 ? 'submission accepted' : 'submitted'
     console.log(`[aem-forms-guide] submission request completed (HTTP ${response.status})`)
-    return textResult(`Form ${outcome} successfully${reference ? ` (reference: ${reference})` : ''}.`)
+    return textResult(
+        `Form ${outcome} successfully${reference ? ` (reference: ${reference})` : ''}.${requestDetails}`
+    )
 }
 
 module.exports = async (args = {}, extra = {}) => {

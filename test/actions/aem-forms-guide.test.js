@@ -19,6 +19,11 @@ function mockFetch (responses) {
     })
 }
 
+function returnedSubmissionRequest (out) {
+    const marker = 'Request sent to AEM Forms:\n'
+    return JSON.parse(out.content[0].text.split(marker)[1])
+}
+
 describe('aem-forms-guide handler', () => {
     afterEach(() => {
         jest.restoreAllMocks()
@@ -112,6 +117,18 @@ describe('aem-forms-guide handler', () => {
 
         expect(out.content[0].text).toContain('Form submitted successfully')
         expect(out.content[0].text).toContain('submission-123')
+        expect(returnedSubmissionRequest(out)).toEqual({
+            method: 'POST',
+            url: 'https://publish-p206352-e2156078.adobeaemcloud.com/adobe/forms/af/submit/L2NvbnRlbnQvZm9ybXMvYWYvYmVuZWZpdHM',
+            headers: {
+                accept: 'application/json',
+                'content-type': 'application/json'
+            },
+            body: JSON.stringify({
+                data: '{"firstName":"Ada","plan":"basic"}',
+                contentType: 'application/json'
+            })
+        })
         const [url, options] = global.fetch.mock.calls[0]
         expect(url.toString()).toBe(
             'https://publish-p206352-e2156078.adobeaemcloud.com/adobe/forms/af/submit/L2NvbnRlbnQvZm9ybXMvYWYvYmVuZWZpdHM'
@@ -123,6 +140,9 @@ describe('aem-forms-guide handler', () => {
             data: '{"firstName":"Ada","plan":"basic"}',
             contentType: 'application/json'
         })
+        expect(out.content[0].text).toContain('Request sent to AEM Forms:')
+        expect(out.content[0].text).toContain('"url": "https://publish-p206352-e2156078.adobeaemcloud.com/adobe/forms/af/submit/L2NvbnRlbnQvZm9ybXMvYWYvYmVuZWZpdHM"')
+        expect(out.content[0].text).toContain('"body": "{\\"data\\":\\"{\\\\\\"firstName\\\\\\":\\\\\\"Ada\\\\\\",\\\\\\"plan\\\\\\":\\\\\\"basic\\\\\\"}\\",\\"contentType\\":\\"application/json\\"}"')
     })
 
     test('submits the operation/formId/answers object payload', async () => {
@@ -207,30 +227,81 @@ describe('aem-forms-guide handler', () => {
             .rejects.toThrow('AEM Forms request failed (HTTP 405).')
     })
 
-    test('reports method-not-allowed submission responses and allowed methods', async () => {
+    test('returns the full submission request with method-not-allowed details', async () => {
         mockFetch([
             jsonResponse({ error: 'private upstream detail' }, 405, { allow: 'GET, OPTIONS' })
         ])
 
-        await expect(handler({
+        const out = await handler({
             operation: 'submit',
             formId: 'form-id',
             answers: { firstName: 'Ada' }
-        })).rejects.toThrow(
-            'AEM Forms submission failed (HTTP 405); endpoint allows: GET, OPTIONS. ' +
-            'Verify the publish host and the form submission configuration.'
+        })
+
+        expect(out.isError).toBe(true)
+        expect(out.content[0].text).toContain(
+            'AEM Forms submission failed (HTTP 405); endpoint allows: GET, OPTIONS.'
         )
+        expect(returnedSubmissionRequest(out)).toEqual({
+            method: 'POST',
+            url: 'https://publish-p206352-e2156078.adobeaemcloud.com/adobe/forms/af/submit/form-id',
+            headers: {
+                accept: 'application/json',
+                'content-type': 'application/json'
+            },
+            body: JSON.stringify({
+                data: '{"firstName":"Ada"}',
+                contentType: 'application/json'
+            })
+        })
     })
 
-    test('does not silently follow redirects for form submission POSTs', async () => {
+    test('returns the full submission request when the endpoint redirects', async () => {
         mockFetch([
             jsonResponse({}, 302, { location: '/adobe/forms/af/submit/canonical-id' })
         ])
 
-        await expect(handler({
+        const out = await handler({
             operation: 'submit',
             formId: 'form-id',
             answers: { firstName: 'Ada' }
-        })).rejects.toThrow(/redirected the POST request \(HTTP 302\)/)
+        })
+
+        expect(out.isError).toBe(true)
+        expect(out.content[0].text).toMatch(/redirected the POST request \(HTTP 302\)/)
+        expect(returnedSubmissionRequest(out).method).toBe('POST')
+        expect(returnedSubmissionRequest(out).body).toContain('firstName')
+    })
+
+    test('returns the full submission request when fetch fails', async () => {
+        global.fetch = jest.fn().mockRejectedValue(new TypeError('network unavailable'))
+
+        const out = await handler({
+            operation: 'submit',
+            formId: 'form-id',
+            answers: { firstName: 'Ada' }
+        })
+
+        expect(out.isError).toBe(true)
+        expect(out.content[0].text).toContain('network unavailable')
+        expect(returnedSubmissionRequest(out).method).toBe('POST')
+        expect(returnedSubmissionRequest(out).body).toContain('firstName')
+    })
+
+    test('returns the full submission request when the success response cannot be parsed', async () => {
+        mockFetch([{
+            ...jsonResponse({}, 200, { 'content-type': 'application/json' }),
+            json: jest.fn().mockRejectedValue(new SyntaxError('invalid JSON'))
+        }])
+
+        const out = await handler({
+            operation: 'submit',
+            formId: 'form-id',
+            answers: { firstName: 'Ada' }
+        })
+
+        expect(out.isError).toBe(true)
+        expect(out.content[0].text).toContain('JSON response could not be parsed')
+        expect(returnedSubmissionRequest(out).body).toContain('firstName')
     })
 })
