@@ -85,9 +85,9 @@ The deploy pipeline clones your repo, fetches the latest metadata from the API, 
 The `aem-forms-guide` action has two operations. If `operation` is omitted, the handler infers `submit` when submission arguments are present; otherwise, it defaults to the read-only `discover` operation:
 
 1. Call `discover` to list published forms, retrieve each form definition, and return its questions and available options. Use that information to help the user choose a form, then ask its questions one at a time in order.
-2. Review the collected answers with the user. Only after the user confirms, call `submit` with `operation: "submit"`, the returned `formId`, and an `answersJson` JSON string keyed by the form's field names. The handler also infers `submit` if `formId` or `answersJson` is present but `operation` was omitted.
+2. Review the collected answers with the user. Only after the user confirms, call `submit` with `operation: "submit"`, the returned `formId`, and an `answers` object keyed by the form's field names. The handler also accepts the legacy `answersJson` JSON string and infers `submit` if `formId`, `answers`, or `answersJson` is present but `operation` was omitted.
 
-The tool's input schema must be configured in the LLM Apps UI so submission arguments reach the handler. Define `operation` as a required string enum with `discover` and `submit` values, plus optional string properties `formId` and `answersJson`. Without an input schema that includes these properties, the MCP runtime may omit or strip tool-call arguments; the handler cannot submit answers it never receives. For example:
+The tool's input schema must be configured in the LLM Apps UI so submission arguments reach the handler. Define `operation` as a required string enum with `discover` and `submit` values, plus optional string `formId` and object `answers` properties. Without an input schema that includes these properties, the MCP runtime may omit or strip tool-call arguments; the handler cannot submit answers it never receives. For example:
 
 ```json
 {
@@ -102,9 +102,10 @@ The tool's input schema must be configured in the LLM Apps UI so submission argu
       "type": "string",
       "description": "The formId returned by discover; required when operation is submit."
     },
-    "answersJson": {
-      "type": "string",
-      "description": "JSON object of completed answers keyed by the form field names; required when operation is submit."
+    "answers": {
+      "type": "object",
+      "description": "Completed answers keyed by the form field names; required when operation is submit.",
+      "additionalProperties": true
     }
   },
   "required": ["operation"]

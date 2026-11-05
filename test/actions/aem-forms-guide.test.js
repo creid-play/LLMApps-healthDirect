@@ -133,6 +133,34 @@ describe('aem-forms-guide handler', () => {
         })
     })
 
+    test('submits the operation/formId/answers object payload', async () => {
+        mockFetch([
+            jsonResponse({ submissionId: 'submission-789' }, 200, { 'content-type': 'application/json' })
+        ])
+
+        const out = await handler({
+            operation: 'submit',
+            formId: 'L2NvbnRlbnQvZm9ybXMvYWYvaGVhZGxlc3MtdGVzdC1mb3Jt',
+            answers: {
+                textinput1791947329104: 'Chris',
+                textinput_16563193791791947332582: 'Reid'
+            }
+        })
+
+        expect(out.content[0].text).toContain('Form submitted successfully')
+        expect(out.content[0].text).toContain('submission-789')
+        expect(global.fetch).toHaveBeenCalledTimes(1)
+        const [url, options] = global.fetch.mock.calls[0]
+        expect(url.toString()).toBe(
+            'https://publish-p206352-e2156078.adobeaemcloud.com/adobe/forms/af/v1/submit/L2NvbnRlbnQvZm9ybXMvYWYvaGVhZGxlc3MtdGVzdC1mb3Jt'
+        )
+        expect(options.method).toBe('POST')
+        expect(JSON.parse(options.body)).toEqual({
+            data: '{"textinput1791947329104":"Chris","textinput_16563193791791947332582":"Reid"}',
+            contentType: 'application/json'
+        })
+    })
+
     test('infers submit when submission arguments are provided without an operation', async () => {
         mockFetch([
             jsonResponse({ submissionId: 'submission-456' }, 200, { 'content-type': 'application/json' })

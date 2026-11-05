@@ -216,20 +216,21 @@ async function discoverForms (baseUrl) {
     )
 }
 
-function parseAnswers (answersJson) {
-    if (typeof answersJson !== 'string' || !answersJson.trim()) {
-        throw new Error('Provide answersJson as a JSON object containing the completed form answers.')
-    }
-
-    let answers
-    try {
-        answers = JSON.parse(answersJson)
-    } catch {
-        throw new Error('answersJson must be valid JSON.')
+function parseAnswers (value) {
+    let answers = value
+    if (typeof value === 'string') {
+        if (!value.trim()) {
+            throw new Error('Provide answers or answersJson containing the completed form answers.')
+        }
+        try {
+            answers = JSON.parse(value)
+        } catch {
+            throw new Error('answersJson must be valid JSON.')
+        }
     }
 
     if (!answers || typeof answers !== 'object' || Array.isArray(answers)) {
-        throw new Error('answersJson must decode to a JSON object.')
+        throw new Error('answers or answersJson must be a JSON object.')
     }
 
     return answers
@@ -271,7 +272,9 @@ async function submitForm (baseUrl, formId, answers) {
 }
 
 module.exports = async (args = {}, extra = {}) => {
-    const hasSubmissionArguments = args.formId !== undefined || args.answersJson !== undefined
+    const hasSubmissionArguments = args.formId !== undefined ||
+        args.answers !== undefined ||
+        args.answersJson !== undefined
     const operation = args.operation || (hasSubmissionArguments ? 'submit' : 'discover')
 
     if (operation !== 'discover' && operation !== 'submit') {
@@ -283,7 +286,7 @@ module.exports = async (args = {}, extra = {}) => {
         if (typeof args.formId !== 'string' || !args.formId.trim()) {
             throw new Error('formId is required when operation is "submit".')
         }
-        answers = parseAnswers(args.answersJson)
+        answers = parseAnswers(args.answers ?? args.answersJson)
     }
 
     const { baseUrl: configuredBaseUrl } = readVariables(extra)
