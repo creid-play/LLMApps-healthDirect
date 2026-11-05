@@ -244,6 +244,7 @@ async function submitForm (baseUrl, formId, answers) {
     console.log('[aem-forms-guide] submission request started')
     const response = await fetch(submitUrl, {
         method: 'POST',
+        redirect: 'manual',
         headers: {
             accept: 'application/json',
             'content-type': 'application/json'
@@ -254,9 +255,22 @@ async function submitForm (baseUrl, formId, answers) {
         })
     })
 
+    if (response.status >= 300 && response.status < 400) {
+        console.error(`[aem-forms-guide] submission endpoint redirected the POST (HTTP ${response.status})`)
+        throw new Error(
+            `AEM Forms submission endpoint redirected the POST request (HTTP ${response.status}); ` +
+            'automatic redirects are disabled to prevent changing the submission method.'
+        )
+    }
+
     if (!response.ok) {
+        const allowedMethods = response.headers?.get?.('allow')
         console.error(`[aem-forms-guide] submission request failed (HTTP ${response.status})`)
-        throw new Error(`AEM Forms submission failed (HTTP ${response.status}).`)
+        throw new Error(
+            `AEM Forms submission failed (HTTP ${response.status})` +
+            `${allowedMethods ? `; endpoint allows: ${allowedMethods}` : ''}. ` +
+            'Verify the publish host and the form submission configuration.'
+        )
     }
 
     let result = {}

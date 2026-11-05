@@ -117,6 +117,7 @@ describe('aem-forms-guide handler', () => {
             'https://publish-p206352-e2156078.adobeaemcloud.com/adobe/forms/af/v1/submit/L2NvbnRlbnQvZm9ybXMvYWYvYmVuZWZpdHM'
         )
         expect(options.method).toBe('POST')
+        expect(options.redirect).toBe('manual')
         expect(options.headers.authorization).toBeUndefined()
         expect(JSON.parse(options.body)).toEqual({
             data: '{"firstName":"Ada","plan":"basic"}',
@@ -147,6 +148,7 @@ describe('aem-forms-guide handler', () => {
             'https://publish-p206352-e2156078.adobeaemcloud.com/adobe/forms/af/v1/submit/L2NvbnRlbnQvZm9ybXMvYWYvaGVhZGxlc3MtdGVzdC1mb3Jt'
         )
         expect(options.method).toBe('POST')
+        expect(options.redirect).toBe('manual')
         expect(JSON.parse(options.body)).toEqual({
             data: '{"textinput1791947329104":"Chris","textinput_16563193791791947332582":"Reid"}',
             contentType: 'application/json'
@@ -198,10 +200,37 @@ describe('aem-forms-guide handler', () => {
 
     test('surfaces upstream HTTP failures without returning response details', async () => {
         mockFetch([
-            jsonResponse({ error: 'private upstream detail' }, 401)
+            jsonResponse({ error: 'private upstream detail' }, 405, { allow: 'GET, OPTIONS' })
         ])
 
         await expect(handler({ operation: 'discover' }))
-            .rejects.toThrow('AEM Forms request failed (HTTP 401).')
+            .rejects.toThrow('AEM Forms request failed (HTTP 405).')
+    })
+
+    test('reports method-not-allowed submission responses and allowed methods', async () => {
+        mockFetch([
+            jsonResponse({ error: 'private upstream detail' }, 405, { allow: 'GET, OPTIONS' })
+        ])
+
+        await expect(handler({
+            operation: 'submit',
+            formId: 'form-id',
+            answers: { firstName: 'Ada' }
+        })).rejects.toThrow(
+            'AEM Forms submission failed (HTTP 405); endpoint allows: GET, OPTIONS. ' +
+            'Verify the publish host and the form submission configuration.'
+        )
+    })
+
+    test('does not silently follow redirects for form submission POSTs', async () => {
+        mockFetch([
+            jsonResponse({}, 302, { location: '/adobe/forms/af/v1/submit/canonical-id' })
+        ])
+
+        await expect(handler({
+            operation: 'submit',
+            formId: 'form-id',
+            answers: { firstName: 'Ada' }
+        })).rejects.toThrow(/redirected the POST request \(HTTP 302\)/)
     })
 })

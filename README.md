@@ -112,7 +112,7 @@ The server enforces the `operation`, `formId`, `answers`, and legacy `answersJso
 }
 ```
 
-The handler uses the publish environment at `https://publish-p206352-e2156078.adobeaemcloud.com` for the forms list (`GET /adobe/forms/af/listforms`), form definitions (`GET /adobe/forms/{formId}`), and submissions (`POST /adobe/forms/af/v1/submit/{formId}`). The JSON submission body wraps the serialized answers as `data` and sets `contentType` to `application/json`.
+The handler uses the publish environment at `https://publish-p206352-e2156078.adobeaemcloud.com` for the forms list (`GET /adobe/forms/af/listforms`), form definitions (`GET /adobe/forms/{formId}`), and submissions (`POST /adobe/forms/af/v1/submit/{formId}`). This matches the AEM Headless Forms API submit operation. The JSON submission body wraps the serialized answers as `data` and sets `contentType` to `application/json`. Submission requests do not automatically follow redirects, so an endpoint redirect is reported explicitly rather than risking a redirect that changes POST to GET. A `405` error includes the endpoint's `Allow` methods when supplied; check that the configured publish host and the form's submit action are valid.
 
 The MCP server does not require Adobe authentication (`require-adobe-auth: false` in `app.config.yaml`). The list and form-definition requests to the configured public publish host were verified to return HTTP 200 without credentials, so the handler does not use OAuth credentials. You can optionally set:
 
