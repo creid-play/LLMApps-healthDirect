@@ -114,7 +114,7 @@ describe('aem-forms-guide handler', () => {
         expect(out.content[0].text).toContain('submission-123')
         const [url, options] = global.fetch.mock.calls[0]
         expect(url.toString()).toBe(
-            'https://publish-p206352-e2156078.adobeaemcloud.com/adobe/forms/af/v1/submit/L2NvbnRlbnQvZm9ybXMvYWYvYmVuZWZpdHM'
+            'https://publish-p206352-e2156078.adobeaemcloud.com/adobe/forms/af/submit/L2NvbnRlbnQvZm9ybXMvYWYvYmVuZWZpdHM'
         )
         expect(options.method).toBe('POST')
         expect(options.redirect).toBe('manual')
@@ -145,7 +145,7 @@ describe('aem-forms-guide handler', () => {
         expect(global.fetch).toHaveBeenCalledTimes(1)
         const [url, options] = global.fetch.mock.calls[0]
         expect(url.toString()).toBe(
-            'https://publish-p206352-e2156078.adobeaemcloud.com/adobe/forms/af/v1/submit/L2NvbnRlbnQvZm9ybXMvYWYvaGVhZGxlc3MtdGVzdC1mb3Jt'
+            'https://publish-p206352-e2156078.adobeaemcloud.com/adobe/forms/af/submit/L2NvbnRlbnQvZm9ybXMvYWYvaGVhZGxlc3MtdGVzdC1mb3Jt'
         )
         expect(options.method).toBe('POST')
         expect(options.redirect).toBe('manual')
@@ -179,7 +179,7 @@ describe('aem-forms-guide handler', () => {
         expect(out.content[0].text).toContain('submission-456')
         expect(global.fetch).toHaveBeenCalledTimes(1)
         const [url, options] = global.fetch.mock.calls[0]
-        expect(url.toString()).toContain('/adobe/forms/af/v1/submit/')
+        expect(url.toString()).toContain('/adobe/forms/af/submit/')
         expect(JSON.parse(options.body)).toEqual({
             data: '{"firstName":"Chris","lastName":"Reid"}',
             contentType: 'application/json'
@@ -224,7 +224,7 @@ describe('aem-forms-guide handler', () => {
 
     test('does not silently follow redirects for form submission POSTs', async () => {
         mockFetch([
-            jsonResponse({}, 302, { location: '/adobe/forms/af/v1/submit/canonical-id' })
+            jsonResponse({}, 302, { location: '/adobe/forms/af/submit/canonical-id' })
         ])
 
         await expect(handler({

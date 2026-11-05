@@ -238,7 +238,7 @@ function parseAnswers (value) {
 
 async function submitForm (baseUrl, formId, answers) {
     const submitUrl = new URL(
-        `/adobe/forms/af/v1/submit/${encodeURIComponent(formId)}`,
+        `/adobe/forms/af/submit/${encodeURIComponent(formId)}`,
         baseUrl
     )
     console.log('[aem-forms-guide] submission request started')
