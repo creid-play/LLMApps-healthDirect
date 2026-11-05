@@ -134,7 +134,7 @@ describe('aem-forms-guide handler', () => {
     })
 
     test('submits the operation/formId/answers object payload', async () => {
-        const logSpy = jest.spyOn(console, 'info').mockImplementation(() => {})
+        const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {})
         mockFetch([
             jsonResponse({ submissionId: 'submission-789' }, 200, { 'content-type': 'application/json' })
         ])

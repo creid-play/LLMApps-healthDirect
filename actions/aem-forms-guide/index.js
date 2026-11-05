@@ -241,7 +241,7 @@ async function submitForm (baseUrl, formId, answers) {
         `/adobe/forms/af/v1/submit/${encodeURIComponent(formId)}`,
         baseUrl
     )
-    console.info('[aem-forms-guide] submission request started')
+    console.log('[aem-forms-guide] submission request started')
     const response = await fetch(submitUrl, {
         method: 'POST',
         headers: {
@@ -270,7 +270,7 @@ async function submitForm (baseUrl, formId, answers) {
     const reference = submissionId || location
 
     const outcome = response.status === 202 ? 'submission accepted' : 'submitted'
-    console.info(`[aem-forms-guide] submission request completed (HTTP ${response.status})`)
+    console.log(`[aem-forms-guide] submission request completed (HTTP ${response.status})`)
     return textResult(`Form ${outcome} successfully${reference ? ` (reference: ${reference})` : ''}.`)
 }
 
@@ -283,7 +283,7 @@ module.exports = async (args = {}, extra = {}) => {
         ? Object.keys(args).sort()
         : []
 
-    console.info('[aem-forms-guide] dispatch selected', JSON.stringify({
+    console.log('[aem-forms-guide] dispatch selected', JSON.stringify({
         requestedOperation: typeof args.operation === 'string' ? args.operation : null,
         selectedOperation: typeof operation === 'string' ? operation : '[invalid]',
         argumentKeys
@@ -306,7 +306,7 @@ module.exports = async (args = {}, extra = {}) => {
 
     if (operation === 'discover') {
         const result = await discoverForms(baseUrl)
-        console.info('[aem-forms-guide] discovery completed')
+        console.log('[aem-forms-guide] discovery completed')
         return result
     }
 

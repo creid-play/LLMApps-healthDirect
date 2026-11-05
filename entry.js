@@ -24,6 +24,7 @@ governing permissions and limitations under the License.
  */
 
 const { createMain } = require('@adobe/llm-apps-runtime')
+const { withRequestLogging } = require('./server/request-logging')
 
 // webpack resolves these at compile time relative to this file's directory.
 // The resulting context objects are passed to the runtime — it never calls
@@ -34,4 +35,7 @@ const htmlContext   = require.context('./actions', true, /widget\.html$/)
 let actionsConfig = {}
 try { actionsConfig = require('./actions.json') } catch (e) { /* no actions.json at build time */ }
 
-module.exports = createMain({ moduleContext, htmlContext, actionsConfig })
+const app = createMain({ moduleContext, htmlContext, actionsConfig })
+app.main = withRequestLogging(app.main)
+
+module.exports = app
