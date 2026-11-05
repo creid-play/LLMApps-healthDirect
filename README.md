@@ -120,6 +120,8 @@ The MCP server does not require Adobe authentication (`require-adobe-auth: false
 
 The `aem-forms-guide` action's title, description, and input schema must also be configured in the LLM Apps UI. `actions.json` is ignored local state; download it from the UI after configuring the action to test locally.
 
+For dispatch diagnostics, the handler writes sanitized `aem-forms-guide` log entries containing the selected operation, argument key names, and submission HTTP status. It does not log form IDs, answer values, or response bodies. If a submission attempt returns the discovery catalogue, check the deployed action logs: `selectedOperation: "discover"` with no submission keys indicates the schema/argument mapping did not deliver the call arguments; `selectedOperation: "submit"` indicates dispatch succeeded and the following submission log or returned error identifies the next step.
+
 ## Authoring with Claude (optional)
 
 This repo ships a Claude skill at [`.claude/skills/llm-apps-action-author/`](.claude/skills/llm-apps-action-author/SKILL.md) that automates steps 1 and 4. Claude Code and Cursor auto-discover it when you open this repo.

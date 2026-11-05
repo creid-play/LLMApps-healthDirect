@@ -134,6 +134,7 @@ describe('aem-forms-guide handler', () => {
     })
 
     test('submits the operation/formId/answers object payload', async () => {
+        const logSpy = jest.spyOn(console, 'info').mockImplementation(() => {})
         mockFetch([
             jsonResponse({ submissionId: 'submission-789' }, 200, { 'content-type': 'application/json' })
         ])
@@ -159,6 +160,16 @@ describe('aem-forms-guide handler', () => {
             data: '{"textinput1791947329104":"Chris","textinput_16563193791791947332582":"Reid"}',
             contentType: 'application/json'
         })
+        expect(logSpy).toHaveBeenCalledWith(
+            '[aem-forms-guide] dispatch selected',
+            JSON.stringify({
+                requestedOperation: 'submit',
+                selectedOperation: 'submit',
+                argumentKeys: ['answers', 'formId', 'operation']
+            })
+        )
+        expect(logSpy.mock.calls.flat().join(' ')).not.toContain('Chris')
+        expect(logSpy.mock.calls.flat().join(' ')).not.toContain('Reid')
     })
 
     test('infers submit when submission arguments are provided without an operation', async () => {

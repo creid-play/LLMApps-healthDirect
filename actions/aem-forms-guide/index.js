@@ -241,6 +241,7 @@ async function submitForm (baseUrl, formId, answers) {
         `/adobe/forms/af/v1/submit/${encodeURIComponent(formId)}`,
         baseUrl
     )
+    console.info('[aem-forms-guide] submission request started')
     const response = await fetch(submitUrl, {
         method: 'POST',
         headers: {
@@ -254,6 +255,7 @@ async function submitForm (baseUrl, formId, answers) {
     })
 
     if (!response.ok) {
+        console.error(`[aem-forms-guide] submission request failed (HTTP ${response.status})`)
         throw new Error(`AEM Forms submission failed (HTTP ${response.status}).`)
     }
 
@@ -268,6 +270,7 @@ async function submitForm (baseUrl, formId, answers) {
     const reference = submissionId || location
 
     const outcome = response.status === 202 ? 'submission accepted' : 'submitted'
+    console.info(`[aem-forms-guide] submission request completed (HTTP ${response.status})`)
     return textResult(`Form ${outcome} successfully${reference ? ` (reference: ${reference})` : ''}.`)
 }
 
@@ -276,6 +279,15 @@ module.exports = async (args = {}, extra = {}) => {
         args.answers !== undefined ||
         args.answersJson !== undefined
     const operation = args.operation || (hasSubmissionArguments ? 'submit' : 'discover')
+    const argumentKeys = args && typeof args === 'object'
+        ? Object.keys(args).sort()
+        : []
+
+    console.info('[aem-forms-guide] dispatch selected', JSON.stringify({
+        requestedOperation: typeof args.operation === 'string' ? args.operation : null,
+        selectedOperation: typeof operation === 'string' ? operation : '[invalid]',
+        argumentKeys
+    }))
 
     if (operation !== 'discover' && operation !== 'submit') {
         throw new Error('operation must be either "discover" or "submit".')
@@ -293,7 +305,9 @@ module.exports = async (args = {}, extra = {}) => {
     const baseUrl = validateBaseUrl(configuredBaseUrl)
 
     if (operation === 'discover') {
-        return discoverForms(baseUrl)
+        const result = await discoverForms(baseUrl)
+        console.info('[aem-forms-guide] discovery completed')
+        return result
     }
 
     return submitForm(baseUrl, args.formId.trim(), answers)
