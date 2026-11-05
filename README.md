@@ -82,7 +82,7 @@ The deploy pipeline clones your repo, fetches the latest metadata from the API, 
 
 ## AEM Forms guide action
 
-The `aem-forms-guide` action has two operations. If `operation` is omitted, the handler infers `submit` when submission arguments are present; otherwise, it defaults to the read-only `discover` operation:
+The `aem-forms-guide` action has two operations. Call `discover` explicitly to list forms. If `operation` is omitted but submission arguments are present, the handler infers `submit`. If both the operation and submission arguments are missing, the handler returns an error instead of silently listing forms:
 
 1. Call `discover` to list published forms, retrieve each form definition, and return its questions and available options. Use that information to help the user choose a form, then ask its questions one at a time in order.
 2. Review the collected answers with the user. Only after the user confirms, call `submit` with `operation: "submit"`, the returned `formId`, and an `answers` object keyed by the form's field names. The handler also accepts the legacy `answersJson` JSON string and infers `submit` if `formId`, `answers`, or `answersJson` is present but `operation` was omitted.

@@ -278,7 +278,7 @@ module.exports = async (args = {}, extra = {}) => {
     const hasSubmissionArguments = args.formId !== undefined ||
         args.answers !== undefined ||
         args.answersJson !== undefined
-    const operation = args.operation || (hasSubmissionArguments ? 'submit' : 'discover')
+    const operation = args.operation || (hasSubmissionArguments ? 'submit' : null)
     const argumentKeys = args && typeof args === 'object'
         ? Object.keys(args).sort()
         : []
@@ -288,6 +288,10 @@ module.exports = async (args = {}, extra = {}) => {
         selectedOperation: typeof operation === 'string' ? operation : '[invalid]',
         argumentKeys
     }))
+
+    if (operation === null) {
+        throw new Error('operation is required; use "discover" to list forms or "submit" to submit answers.')
+    }
 
     if (operation !== 'discover' && operation !== 'submit') {
         throw new Error('operation must be either "discover" or "submit".')
