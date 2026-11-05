@@ -253,8 +253,8 @@ async function submitForm (baseUrl, formId, answers) {
             'content-type': 'application/json'
         },
         body: JSON.stringify({
-            data: JSON.stringify(answers),
-            contentType: 'application/json'
+            data: answers,
+            submitMetadata: {}
         })
     }
     const requestDetails = `\n\nRequest sent to AEM Forms:\n${JSON.stringify(request, null, 2)}`

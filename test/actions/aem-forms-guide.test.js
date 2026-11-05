@@ -125,8 +125,8 @@ describe('aem-forms-guide handler', () => {
                 'content-type': 'application/json'
             },
             body: JSON.stringify({
-                data: '{"firstName":"Ada","plan":"basic"}',
-                contentType: 'application/json'
+                data: { firstName: 'Ada', plan: 'basic' },
+                submitMetadata: {}
             })
         })
         const [url, options] = global.fetch.mock.calls[0]
@@ -137,12 +137,12 @@ describe('aem-forms-guide handler', () => {
         expect(options.redirect).toBe('manual')
         expect(options.headers.authorization).toBeUndefined()
         expect(JSON.parse(options.body)).toEqual({
-            data: '{"firstName":"Ada","plan":"basic"}',
-            contentType: 'application/json'
+            data: { firstName: 'Ada', plan: 'basic' },
+            submitMetadata: {}
         })
         expect(out.content[0].text).toContain('Request sent to AEM Forms:')
         expect(out.content[0].text).toContain('"url": "https://publish-p206352-e2156078.adobeaemcloud.com/adobe/forms/af/submit/L2NvbnRlbnQvZm9ybXMvYWYvYmVuZWZpdHM"')
-        expect(out.content[0].text).toContain('"body": "{\\"data\\":\\"{\\\\\\"firstName\\\\\\":\\\\\\"Ada\\\\\\",\\\\\\"plan\\\\\\":\\\\\\"basic\\\\\\"}\\",\\"contentType\\":\\"application/json\\"}"')
+        expect(out.content[0].text).toContain('"body": "{\\"data\\":{\\"firstName\\":\\"Ada\\",\\"plan\\":\\"basic\\"},\\"submitMetadata\\":{}}"')
     })
 
     test('submits the operation/formId/answers object payload', async () => {
@@ -170,8 +170,11 @@ describe('aem-forms-guide handler', () => {
         expect(options.method).toBe('POST')
         expect(options.redirect).toBe('manual')
         expect(JSON.parse(options.body)).toEqual({
-            data: '{"textinput1791947329104":"Chris","textinput_16563193791791947332582":"Reid"}',
-            contentType: 'application/json'
+            data: {
+                textinput1791947329104: 'Chris',
+                textinput_16563193791791947332582: 'Reid'
+            },
+            submitMetadata: {}
         })
         expect(logSpy).toHaveBeenCalledWith(
             '[aem-forms-guide] dispatch selected',
@@ -201,8 +204,8 @@ describe('aem-forms-guide handler', () => {
         const [url, options] = global.fetch.mock.calls[0]
         expect(url.toString()).toContain('/adobe/forms/af/submit/')
         expect(JSON.parse(options.body)).toEqual({
-            data: '{"firstName":"Chris","lastName":"Reid"}',
-            contentType: 'application/json'
+            data: { firstName: 'Chris', lastName: 'Reid' },
+            submitMetadata: {}
         })
     })
 
@@ -250,8 +253,8 @@ describe('aem-forms-guide handler', () => {
                 'content-type': 'application/json'
             },
             body: JSON.stringify({
-                data: '{"firstName":"Ada"}',
-                contentType: 'application/json'
+                data: { firstName: 'Ada' },
+                submitMetadata: {}
             })
         })
     })

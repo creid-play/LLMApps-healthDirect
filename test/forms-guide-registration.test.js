@@ -84,11 +84,14 @@ describe('AEM Forms guide MCP registration', () => {
         expect(result.content[0].text).toContain('Form submitted successfully')
         expect(global.fetch).toHaveBeenCalledTimes(1)
         const [url, options] = global.fetch.mock.calls[0]
-        expect(url.toString()).toContain('/adobe/forms/af/v1/submit/')
+        expect(url.toString()).toContain('/adobe/forms/af/submit/')
         expect(options.method).toBe('POST')
         expect(JSON.parse(options.body)).toEqual({
-            data: '{"textinput1791947329104":"Chris","textinput_16563193791791947332582":"Reid"}',
-            contentType: 'application/json'
+            data: {
+                textinput1791947329104: 'Chris',
+                textinput_16563193791791947332582: 'Reid'
+            },
+            submitMetadata: {}
         })
     })
 
