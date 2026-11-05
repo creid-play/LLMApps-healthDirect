@@ -82,10 +82,34 @@ The deploy pipeline clones your repo, fetches the latest metadata from the API, 
 
 ## AEM Forms guide action
 
-The `aem-forms-guide` action has two operations. If the operation argument is omitted, the handler defaults to `discover`, which is read-only:
+The `aem-forms-guide` action has two operations. If `operation` is omitted, the handler infers `submit` when submission arguments are present; otherwise, it defaults to the read-only `discover` operation:
 
 1. Call `discover` to list published forms, retrieve each form definition, and return its questions and available options. Use that information to help the user choose a form, then ask its questions one at a time in order.
-2. Review the collected answers with the user. Only after the user confirms, call `submit` with the returned `formId` and an `answersJson` object keyed by the form's field names.
+2. Review the collected answers with the user. Only after the user confirms, call `submit` with `operation: "submit"`, the returned `formId`, and an `answersJson` JSON string keyed by the form's field names. The handler also infers `submit` if `formId` or `answersJson` is present but `operation` was omitted.
+
+The tool's input schema must be configured in the LLM Apps UI so submission arguments reach the handler. Define `operation` as a required string enum with `discover` and `submit` values, plus optional string properties `formId` and `answersJson`. Without an input schema that includes these properties, the MCP runtime may omit or strip tool-call arguments; the handler cannot submit answers it never receives. For example:
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "operation": {
+      "type": "string",
+      "enum": ["discover", "submit"],
+      "description": "Use discover to list forms or submit to send user-confirmed answers."
+    },
+    "formId": {
+      "type": "string",
+      "description": "The formId returned by discover; required when operation is submit."
+    },
+    "answersJson": {
+      "type": "string",
+      "description": "JSON object of completed answers keyed by the form field names; required when operation is submit."
+    }
+  },
+  "required": ["operation"]
+}
+```
 
 The handler uses the publish environment at `https://publish-p206352-e2156078.adobeaemcloud.com` for the forms list (`GET /adobe/forms/af/listforms`), form definitions (`GET /adobe/forms/{formId}`), and submissions (`POST /adobe/forms/af/v1/submit/{formId}`). The JSON submission body wraps the serialized answers as `data` and sets `contentType` to `application/json`.
 

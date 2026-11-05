@@ -133,6 +133,27 @@ describe('aem-forms-guide handler', () => {
         })
     })
 
+    test('infers submit when submission arguments are provided without an operation', async () => {
+        mockFetch([
+            jsonResponse({ submissionId: 'submission-456' }, 200, { 'content-type': 'application/json' })
+        ])
+
+        const out = await handler({
+            formId: 'L2NvbnRlbnQvZm9ybXMvYWYvYmVuZWZpdHM',
+            answersJson: '{"firstName":"Chris","lastName":"Reid"}'
+        })
+
+        expect(out.content[0].text).toContain('Form submitted successfully')
+        expect(out.content[0].text).toContain('submission-456')
+        expect(global.fetch).toHaveBeenCalledTimes(1)
+        const [url, options] = global.fetch.mock.calls[0]
+        expect(url.toString()).toContain('/adobe/forms/af/v1/submit/')
+        expect(JSON.parse(options.body)).toEqual({
+            data: '{"firstName":"Chris","lastName":"Reid"}',
+            contentType: 'application/json'
+        })
+    })
+
     test('rejects invalid answers before making a request', async () => {
         global.fetch = jest.fn()
 

@@ -271,7 +271,8 @@ async function submitForm (baseUrl, formId, answers) {
 }
 
 module.exports = async (args = {}, extra = {}) => {
-    const operation = args.operation || 'discover'
+    const hasSubmissionArguments = args.formId !== undefined || args.answersJson !== undefined
+    const operation = args.operation || (hasSubmissionArguments ? 'submit' : 'discover')
 
     if (operation !== 'discover' && operation !== 'submit') {
         throw new Error('operation must be either "discover" or "submit".')
