@@ -215,7 +215,10 @@ async function discoverForms (baseUrl) {
         const questions = form.questions.length
             ? form.questions.map((field, index) => {
                 const options = field.options?.length
-                    ? `; options: ${field.options.map(option => option.label).join(', ')}`
+                    ? `; choices to show the user: ${field.options.map(option => option.label).join(', ')}` +
+                      `; internal submission mapping (do not show): ${field.options.map(option =>
+                          `${JSON.stringify(option.label)} => ${JSON.stringify(option.value)}`
+                      ).join(', ')}`
                     : ''
                 return `  ${index + 1}. ${field.question} [${field.name}; ${field.type}${options}]`
             }).join('\n')
@@ -232,10 +235,12 @@ async function discoverForms (baseUrl) {
         'to open a small business, suggest the loan application, account application, and point-of-sale ' +
         'application when those forms are available. Do not invent forms that are not listed. Guide the ' +
         'user through relevant form questions one at a time. Whenever a field has predefined options, ' +
-        'present them with ChatGPT’s native choice selector, preserving every exact label and submitted ' +
-        'value from discovery. Do not call a widget or choose an answer for the user. If a native selector ' +
-        'is unavailable, list the exact options in chat and ask the user to choose. Continue with the ' +
-        'selected value, and obtain explicit confirmation of all answers before calling submit.'
+        'present only each option’s exact display label with ChatGPT’s native choice selector. Never ' +
+        'include the underlying data value in the selector or in text shown to the user. Keep the ' +
+        'label-to-value mapping from discovery internal; after the user selects a display label, map it ' +
+        'back to that option’s exact data value for the form answer. Do not call a widget or choose an ' +
+        'answer for the user. If a native selector is unavailable, list only the exact display labels in ' +
+        'chat and ask the user to choose. Obtain explicit confirmation of all answers before calling submit.'
     )
 }
 

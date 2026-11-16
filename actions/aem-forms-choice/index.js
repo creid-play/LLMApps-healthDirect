@@ -22,13 +22,20 @@ module.exports = async (args = {}) => {
     })
     const question = args.question.trim()
     const fieldName = args.fieldName.trim()
-    const choices = options.map(option => `- ${option.label} (value: ${option.value})`).join('\n')
+    const displayChoices = options.map(option => `- ${option.label}`).join('\n')
+    const submissionMapping = options
+        .map(option => `- ${JSON.stringify(option.label)} => ${JSON.stringify(option.value)}`)
+        .join('\n')
 
     return textResult(
         `Present this form question with ChatGPT's native choice selector, not a widget. ` +
-        'Use each option label exactly as written and preserve its associated submitted value. ' +
+        'Use ONLY the display text in the "Choices to show the user" list as selector options; ' +
+        'never show data values or the internal mapping to the user. When the user selects a label, ' +
+        'look up its exact data value in the internal mapping and use that value in the form answers. ' +
         'If a native selector is unavailable, show the options in chat and ask the user to choose. ' +
         'Do not select an answer for the user.\n' +
-        `${question} (field: ${fieldName})\n${choices}`
+        `Question: ${question}\nField: ${fieldName}\n` +
+        `Choices to show the user:\n${displayChoices}\n` +
+        `Internal submission mapping (never display):\n${submissionMapping}`
     )
 }

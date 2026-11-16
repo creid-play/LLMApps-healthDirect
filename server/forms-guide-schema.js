@@ -5,7 +5,7 @@ const FORMS_GUIDE_INPUT_PROPERTIES = {
     operation: {
         type: 'string',
         enum: ['discover', 'present-choice', 'submit'],
-        description: 'Use discover to list forms and their questions. Choose relevant forms, then guide the user through questions one at a time. Whenever a field has predefined choices, present them with ChatGPT’s native choice selector. Do not call or expect a widget. If the host has no native selector, list the exact options in chat and ask the user to choose one. Preserve the selected option’s exact submitted value. For free-text fields, ask in chat. Submit only after the user explicitly confirms all collected answers.'
+        description: 'Use discover to list forms and their questions. Choose relevant forms, then guide the user through questions one at a time. For predefined choices, show only exact display labels in ChatGPT’s native choice selector, never the underlying data values. Keep the label-to-value mapping internal and map the selected display label back to its exact data value for form submission. Do not call or expect a widget. If the host has no native selector, show only the display labels in chat. Submit only after the user explicitly confirms all collected answers.'
     },
     fieldName: {
         type: 'string',
@@ -13,11 +13,11 @@ const FORMS_GUIDE_INPUT_PROPERTIES = {
     },
     question: {
         type: 'string',
-        description: 'The current form question to present with ChatGPT’s native choice selector; required for present-choice.'
+        description: 'The form question to present with ChatGPT’s native choice selector; show only the display labels to the user and map their selection back to its data value.'
     },
     options: {
         type: 'array',
-        description: 'All predefined answer choices, each with its exact display label and submitted value; required for present-choice.',
+        description: 'All predefined answer choices, each with its exact display label and submitted value. Present only labels to the user and use the exact corresponding value in form answers.',
         items: {
             type: 'object',
             properties: {
@@ -44,7 +44,7 @@ const FORMS_GUIDE_INPUT_PROPERTIES = {
 const FORMS_CHOICE_INPUT_PROPERTIES = {
     question: {
         type: 'string',
-        description: 'The form question to present with ChatGPT’s native choice selector.'
+        description: 'The form question to present with ChatGPT’s native choice selector; show only the display labels to the user.'
     },
     fieldName: {
         type: 'string',
@@ -52,7 +52,7 @@ const FORMS_CHOICE_INPUT_PROPERTIES = {
     },
     options: {
         type: 'array',
-        description: 'All predefined answer choices from discovery, each with its exact display label and submitted value. Present them using ChatGPT’s native choice selector; if unavailable, show the exact options in chat and ask the user to choose.',
+        description: 'All predefined answer choices from discovery. Show only each exact label in the native choice selector, never the data value. Map the selected label back to its exact value for submission.',
         items: {
             type: 'object',
             properties: {
@@ -64,8 +64,8 @@ const FORMS_CHOICE_INPUT_PROPERTIES = {
     }
 }
 
-const FORMS_CHOICE_DESCRIPTION = 'Use this tool when presenting a form question with predefined choices. It does not render a widget. Present the question and options with ChatGPT’s native choice selector, preserving each exact label and submitted value. If the host does not provide a native selector, show the options in chat and ask the user to choose. Never invent or alter options.'
-const FORMS_GUIDE_DESCRIPTION = 'When asking a form question with predefined choices, use ChatGPT’s native choice selector, not a widget. If the host has no native selector, show the exact options in chat and ask the user to choose. Preserve each exact submitted value and never invent options. Obtain explicit confirmation before submitting answers.'
+const FORMS_CHOICE_DESCRIPTION = 'Use this tool to present one predefined-choice form question. It returns plain-text instructions and does not render a widget. Show only exact option labels with ChatGPT’s native choice selector; never show the underlying data values. Keep the label-to-value mapping internal and map the selected label back to its exact value for form submission. If the host has no native selector, show only the labels in chat and ask the user to choose. Never invent or alter options.'
+const FORMS_GUIDE_DESCRIPTION = 'Use discover to list forms and questions, then select and guide the user through relevant forms one question at a time. For predefined choices, show only exact display labels with ChatGPT’s native choice selector, never data values. Keep the label-to-value mapping internal and map the selected label back to its exact value for submission. Do not call or expect a widget; if the host has no native selector, ask the user to choose from the labels in chat. Ask free-text questions in chat. Summarize all answers and obtain explicit confirmation before submit.'
 
 function withoutWidgetMetadata (action) {
     const toolMeta = { ...action.tool_meta }
@@ -101,9 +101,7 @@ function ensureFormsGuideInputSchema (actionsConfig, availableActionNames = []) 
                 const existingSchema = action.inputSchema || {}
                 return {
                     ...withoutWidgetMetadata(action),
-                    description: action.description?.includes('ChatGPT’s native choice selector')
-                        ? action.description
-                        : `${action.description || ''} ${FORMS_GUIDE_DESCRIPTION}`.trim(),
+                    description: FORMS_GUIDE_DESCRIPTION,
                     inputSchema: {
                         ...existingSchema,
                         type: 'object',
@@ -121,9 +119,7 @@ function ensureFormsGuideInputSchema (actionsConfig, availableActionNames = []) 
                 return {
                     ...withoutWidgetMetadata(action),
                     title: action.title || 'Present form answer choices',
-                    description: action.description
-                        ? `${action.description} ${FORMS_CHOICE_DESCRIPTION}`
-                        : FORMS_CHOICE_DESCRIPTION,
+                    description: FORMS_CHOICE_DESCRIPTION,
                     inputSchema: {
                         ...existingSchema,
                         type: 'object',

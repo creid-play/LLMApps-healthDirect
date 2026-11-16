@@ -33,6 +33,7 @@ describe('AEM Forms guide MCP registration', () => {
             actions: [{
                 name: 'aem-forms-guide',
                 title: 'AEM Forms Guide',
+                description: 'Render choices using a widget and wait for button clicks.',
                 tool_meta: {
                     ui: { resourceUri: 'ui://aem-forms-guide/widget.html', visibility: ['model', 'app'] },
                     'ui/resourceUri': 'ui://aem-forms-guide/widget.html',
@@ -48,6 +49,7 @@ describe('AEM Forms guide MCP registration', () => {
                 }
             }, {
                 name: 'aem-forms-choice',
+                description: 'MANDATORY render tool: show clickable buttons in the attached widget.',
                 tool_meta: {
                     ui: { resourceUri: 'ui://aem-forms-choice/widget.html' },
                     'openai/outputTemplate': 'ui://aem-forms-choice/widget.html',
@@ -87,6 +89,7 @@ describe('AEM Forms guide MCP registration', () => {
         expect(tool.inputSchema.properties.answers).toBeDefined()
         expect(tool.inputSchema.properties.extraField.type).toBe('string')
         expect(tool.description).toContain('ChatGPT’s native choice selector')
+        expect(tool.description).not.toContain('button clicks')
         expect(tool._meta?.['openai/outputTemplate']).toBeUndefined()
         expect(tool._meta?.['openai/resultCanProduceWidget']).toBeUndefined()
         expect(tool._meta?.['openai/widgetAccessible']).toBeUndefined()
@@ -96,6 +99,7 @@ describe('AEM Forms guide MCP registration', () => {
         expect(tool.inputSchema.properties.options.type).toBe('array')
         expect(choiceTool.description).toContain('native choice selector')
         expect(choiceTool.description).toContain('not render a widget')
+        expect(choiceTool.description).not.toContain('clickable buttons')
         expect(choiceTool._meta?.['openai/outputTemplate']).toBeUndefined()
         expect(choiceTool._meta?.['openai/resultCanProduceWidget']).toBeUndefined()
         expect(choiceTool._meta?.['openai/widgetAccessible']).toBeUndefined()
@@ -170,8 +174,9 @@ describe('AEM Forms guide MCP registration', () => {
         const result = JSON.parse(called.body).result
         expect(result.structuredContent).toBeUndefined()
         expect(result.content[0].text).toContain("ChatGPT's native choice selector, not a widget")
-        expect(result.content[0].text).toContain('Business (value: business)')
-        expect(result.content[0].text).toContain('Personal (value: personal)')
+        expect(result.content[0].text).toContain('Choices to show the user:\n- Business\n- Personal')
+        expect(result.content[0].text).toContain('"Business" => "business"')
+        expect(result.content[0].text).not.toContain('Business (value: business)')
     })
 
     test('accepts present-choice on aem-forms-guide and returns plain text instructions', async () => {
@@ -208,9 +213,9 @@ describe('AEM Forms guide MCP registration', () => {
         const result = JSON.parse(called.body).result
         expect(result.structuredContent).toBeUndefined()
         expect(result.content[0].text).toContain("ChatGPT's native choice selector")
-        expect(result.content[0].text).toContain('Australian citizen (value: citizen)')
-        expect(result.content[0].text).toContain('Permanent resident (value: permanent_resident)')
-        expect(result.content[0].text).toContain('Other (value: other)')
+        expect(result.content[0].text).toContain('Choices to show the user:\n- Australian citizen\n- Permanent resident\n- Other')
+        expect(result.content[0].text).toContain('"Australian citizen" => "citizen"')
+        expect(result.content[0].text).not.toContain('Australian citizen (value: citizen)')
     })
 
     test('adds the forms action and schema when action metadata is empty', () => {

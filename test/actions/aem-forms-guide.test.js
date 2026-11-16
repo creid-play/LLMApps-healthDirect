@@ -82,12 +82,15 @@ describe('aem-forms-guide handler', () => {
         expect(out.content[0].text).toContain('Benefits application: Apply for a health benefit.')
         expect(out.content[0].text).toContain(`formId: ${expectedFormId}`)
         expect(out.content[0].text).toMatch(/1\. First name \(required\).*2\. Plan type/s)
-        expect(out.content[0].text).toContain('options: Basic, Plus')
+        expect(out.content[0].text).toContain('choices to show the user: Basic, Plus')
+        expect(out.content[0].text).toContain('"Basic" => "basic"')
+        expect(out.content[0].text).toContain('internal submission mapping (do not show)')
         expect(out.content[0].text).toContain(
             'suggest the loan application, account application, and point-of-sale application when those forms are available'
         )
         expect(out.content[0].text).toContain('Do not invent forms that are not listed.')
         expect(out.content[0].text).toContain('ChatGPT’s native choice selector')
+        expect(out.content[0].text).toContain('Never include the underlying data value in the selector')
         expect(out.content[0].text).toContain('If a native selector is unavailable')
         expect(out.structuredContent).toBeUndefined()
         expect(global.fetch).toHaveBeenCalledTimes(2)

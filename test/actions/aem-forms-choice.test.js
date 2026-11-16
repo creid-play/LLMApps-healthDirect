@@ -14,10 +14,14 @@ describe('aem-forms-choice handler', () => {
 
         expect(out.structuredContent).toBeUndefined()
         expect(out.content[0].text).toContain("ChatGPT's native choice selector, not a widget")
-        expect(out.content[0].text).toContain('What is your citizenship status? (field: owner_citizenship_status)')
-        expect(out.content[0].text).toContain('Australian citizen (value: citizen)')
-        expect(out.content[0].text).toContain('Permanent resident (value: permanent_resident)')
-        expect(out.content[0].text).toContain('Other (value: other)')
+        expect(out.content[0].text).toContain('Question: What is your citizenship status?')
+        expect(out.content[0].text).toContain('Choices to show the user:\n- Australian citizen\n- Permanent resident\n- Other')
+        expect(out.content[0].text).toContain(
+            'Internal submission mapping (never display):\n- "Australian citizen" => "citizen"\n' +
+            '- "Permanent resident" => "permanent_resident"\n- "Other" => "other"'
+        )
+        expect(out.content[0].text).not.toContain('Australian citizen (value: citizen)')
+        expect(out.content[0].text).toContain('look up its exact data value in the internal mapping')
     })
 
     test.each([
