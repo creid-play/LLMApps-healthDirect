@@ -358,7 +358,10 @@ module.exports = async (args = {}, extra = {}) => {
     }
 
     if (operation !== 'discover' && operation !== 'submit') {
-        throw new Error('operation must be either "discover" or "submit".')
+        if (operation === 'present-choice') {
+            return require('../aem-forms-choice/index.js')(args)
+        }
+        throw new Error('operation must be "discover", "present-choice", or "submit".')
     }
 
     let answers

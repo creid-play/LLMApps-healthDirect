@@ -5,11 +5,13 @@ const fs = require('fs')
 const path = require('path')
 const ACTIONS_DIR = path.join(__dirname, '..', 'actions')
 const CHOICE_WIDGET_PATH = path.join(ACTIONS_DIR, 'aem-forms-choice', 'widget.html')
+const GUIDE_WIDGET_PATH = path.join(ACTIONS_DIR, 'aem-forms-guide', 'widget.html')
 
 function widgetContext () {
     const widgetHtml = fs.readFileSync(CHOICE_WIDGET_PATH, 'utf8')
-    const context = () => widgetHtml
-    context.keys = () => ['./aem-forms-choice/widget.html']
+    const guideWidgetHtml = fs.readFileSync(GUIDE_WIDGET_PATH, 'utf8')
+    const context = key => key.includes('aem-forms-guide') ? guideWidgetHtml : widgetHtml
+    context.keys = () => ['./aem-forms-choice/widget.html', './aem-forms-guide/widget.html']
     return context
 }
 
@@ -70,13 +72,17 @@ describe('AEM Forms guide MCP registration', () => {
         const tool = JSON.parse(listed.body).result.tools.find(item => item.name === 'aem-forms-guide')
         const choiceTool = JSON.parse(listed.body).result.tools.find(item => item.name === 'aem-forms-choice')
         expect(tool.inputSchema.required).toContain('operation')
-        expect(tool.inputSchema.properties.operation.enum).toEqual(['discover', 'submit'])
-        expect(tool.inputSchema.properties.operation.description).toContain('you MUST call aem-forms-choice')
+        expect(tool.inputSchema.properties.operation.enum).toEqual(['discover', 'present-choice', 'submit'])
+        expect(tool.inputSchema.properties.operation.description).toContain('present-choice is also accepted')
         expect(tool.inputSchema.properties.operation.description).toContain('explicitly confirms')
         expect(tool.inputSchema.properties.formId.type).toBe('string')
         expect(tool.inputSchema.properties.answers).toBeDefined()
         expect(tool.inputSchema.properties.extraField.type).toBe('string')
-        expect(tool._meta?.ui?.resourceUri).toBeUndefined()
+        expect(tool._meta['openai/outputTemplate']).toBe('ui://aem-forms-guide/widget.html')
+        expect(tool._meta['openai/resultCanProduceWidget']).toBe(true)
+        expect(tool._meta.ui.resourceUri).toBe('ui://aem-forms-guide/widget.html')
+        expect(tool.inputSchema.properties.question.type).toBe('string')
+        expect(tool.inputSchema.properties.options.type).toBe('array')
         expect(choiceTool._meta['openai/outputTemplate']).toBe('ui://aem-forms-choice/widget.html')
         expect(choiceTool._meta['openai/resultCanProduceWidget']).toBe(true)
         expect(choiceTool._meta['openai/widgetAccessible']).toBe(true)
@@ -95,6 +101,9 @@ describe('AEM Forms guide MCP registration', () => {
         })
         expect(JSON.parse(resourceList.body).result.resources).toContainEqual(
             expect.objectContaining({ uri: 'ui://aem-forms-choice/widget.html' })
+        )
+        expect(JSON.parse(resourceList.body).result.resources).toContainEqual(
+            expect.objectContaining({ uri: 'ui://aem-forms-guide/widget.html' })
         )
 
         const called = await mcpPost(main, {
@@ -181,6 +190,49 @@ describe('AEM Forms guide MCP registration', () => {
         expect(widget).toContain('sendFollowUpMessage')
     })
 
+    test('accepts present-choice on aem-forms-guide using its registered schema and widget', async () => {
+        const actionsConfig = ensureFormsGuideInputSchema({
+            actions: [{ name: 'aem-forms-guide' }]
+        })
+        const moduleContext = key => require(path.join(ACTIONS_DIR, key.split('/')[1], 'index.js'))
+        moduleContext.keys = () => ['./aem-forms-guide/index.js']
+        const main = createMain({
+            moduleContext,
+            htmlContext: widgetContext(),
+            actionsConfig,
+            serverName: 'forms-guide-compat-choice-test'
+        }).main
+
+        const called = await mcpPost(main, {
+            jsonrpc: '2.0',
+            id: 6,
+            method: 'tools/call',
+            params: {
+                name: 'aem-forms-guide',
+                arguments: {
+                    operation: 'present-choice',
+                    fieldName: 'owner_citizenship_status',
+                    question: 'What is your citizenship status?',
+                    options: [
+                        { label: 'Australian citizen', value: 'citizen' },
+                        { label: 'Permanent resident', value: 'permanent_resident' },
+                        { label: 'Other', value: 'other' }
+                    ]
+                }
+            }
+        })
+        expect(JSON.parse(called.body).result.structuredContent).toEqual({
+            type: 'choice',
+            fieldName: 'owner_citizenship_status',
+            question: 'What is your citizenship status?',
+            options: [
+                { label: 'Australian citizen', value: 'citizen' },
+                { label: 'Permanent resident', value: 'permanent_resident' },
+                { label: 'Other', value: 'other' }
+            ]
+        })
+    })
+
     test('adds the forms action and schema when action metadata is empty', () => {
         const actionsConfig = ensureFormsGuideInputSchema(
             { actions: [] },
@@ -195,8 +247,10 @@ describe('AEM Forms guide MCP registration', () => {
         expect(actionsConfig.actions[0].inputSchema.required).toContain('operation')
         expect(actionsConfig.actions[0].inputSchema.properties.operation.enum).toEqual([
             'discover',
+            'present-choice',
             'submit'
         ])
+        expect(actionsConfig.actions[0].inputSchema.properties.options.type).toBe('array')
         expect(actionsConfig.actions[1].inputSchema.required).toEqual([
             'question',
             'fieldName',
