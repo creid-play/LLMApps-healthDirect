@@ -43,7 +43,7 @@
         try {
           const output = await window.openai.toolOutput
           if (output?.type !== 'choice' || !Array.isArray(output.options) || output.options.length < 2) {
-            root.textContent = ''
+            root.textContent = 'No answer choices were provided.'
             return
           }
 
@@ -65,8 +65,8 @@
             button.type = 'button'
             button.textContent = option.label
             button.addEventListener('click', async () => {
-              const sendFollowupTurn = window.openai?.sendFollowupTurn
-              if (typeof sendFollowupTurn !== 'function') {
+              const sendFollowUpMessage = window.openai?.sendFollowUpMessage
+              if (typeof sendFollowUpMessage !== 'function') {
                 status.textContent = 'This host cannot send the selected answer to the assistant. Please reply in the chat.'
                 status.classList.add('error')
                 return
@@ -76,11 +76,11 @@
                 choice.disabled = true
               })
               try {
-                await sendFollowupTurn(
-                  `For the form question "${output.question}" (field "${output.fieldName}"), ` +
-                  `I selected "${option.label}". Use the exact answer value ${JSON.stringify(option.value)} ` +
-                  'and continue to the next question. Do not submit the form until I review and explicitly confirm all answers.'
-                )
+                await sendFollowUpMessage({
+                  prompt: `For the form question "${output.question}" (field "${output.fieldName}"), ` +
+                    `I selected "${option.label}". Use the exact answer value ${JSON.stringify(option.value)} ` +
+                    'and continue to the next question. Do not submit the form until I review and explicitly confirm all answers.'
+                })
                 status.textContent = `Selected: ${option.label}`
               } catch (error) {
                 choices.querySelectorAll('button').forEach(choice => {

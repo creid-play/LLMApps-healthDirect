@@ -191,35 +191,6 @@ function displayDescription (form) {
     return stringValue(form?.description || form?.summary)
 }
 
-function presentChoice (args) {
-    if (typeof args.fieldName !== 'string' || !args.fieldName.trim()) {
-        throw new Error('fieldName is required when operation is "present-choice".')
-    }
-    if (typeof args.question !== 'string' || !args.question.trim()) {
-        throw new Error('question is required when operation is "present-choice".')
-    }
-    if (!Array.isArray(args.options) || args.options.length < 2) {
-        throw new Error('options must contain at least two choices when operation is "present-choice".')
-    }
-
-    const options = args.options.map((option, index) => {
-        if (!option || typeof option.label !== 'string' || !option.label.trim() ||
-            typeof option.value !== 'string' || !option.value.trim()) {
-            throw new Error(`options[${index}] must include non-empty string label and value properties.`)
-        }
-        return { label: option.label, value: option.value }
-    })
-    const question = args.question.trim()
-    const fieldName = args.fieldName.trim()
-    const choices = options.map(option => `- ${option.label} (value: ${option.value})`).join('\n')
-
-    return textResult(
-        `Present the following choices to the user using the attached widget. Do not ask them to type an option:\n` +
-        `${question}\n${choices}\nWhen selected, continue the conversation with the chosen value for "${fieldName}".`,
-        { type: 'choice', fieldName, question, options }
-    )
-}
-
 async function discoverForms (baseUrl) {
     const forms = await getPublishedForms(baseUrl)
     const discovered = []
@@ -260,11 +231,12 @@ async function discoverForms (baseUrl) {
         'related applications they may not have explicitly requested. For example, when a user wants ' +
         'to open a small business, suggest the loan application, account application, and point-of-sale ' +
         'application when those forms are available. Do not invent forms that are not listed. Guide the ' +
-        'user through relevant form questions one at a time. For a question with predefined options, call ' +
-        'this action with operation "present-choice", the fieldName, question, and the exact options returned ' +
-        'by discovery; the attached widget will show clickable choices. Do not ask the user to type a ' +
-        'predefined choice when the widget is available. Continue with the selected value, and obtain ' +
-        'explicit confirmation of all answers before calling submit. The widget does not submit forms.'
+        'user through relevant form questions one at a time. Whenever a field has predefined options, ' +
+        'you MUST call the separate aem-forms-choice tool with the question, fieldName, and every exact ' +
+        'label/value option returned by discovery. This render tool is mapped to the choice widget; let ' +
+        'it render, and wait for the user to click an option. Do not list the choices in prose or ask the ' +
+        'user to type one. Continue with the clicked value, and obtain explicit confirmation of all ' +
+        'answers before calling submit. The choice widget does not submit forms.'
     )
 }
 
@@ -385,12 +357,8 @@ module.exports = async (args = {}, extra = {}) => {
         throw new Error('operation is required; use "discover" to list forms or "submit" to submit answers.')
     }
 
-    if (operation !== 'discover' && operation !== 'submit' && operation !== 'present-choice') {
-        throw new Error('operation must be "discover", "present-choice", or "submit".')
-    }
-
-    if (operation === 'present-choice') {
-        return presentChoice(args)
+    if (operation !== 'discover' && operation !== 'submit') {
+        throw new Error('operation must be either "discover" or "submit".')
     }
 
     let answers
