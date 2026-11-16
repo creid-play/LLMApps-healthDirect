@@ -87,7 +87,8 @@ describe('aem-forms-guide handler', () => {
             'suggest the loan application, account application, and point-of-sale application when those forms are available'
         )
         expect(out.content[0].text).toContain('Do not invent forms that are not listed.')
-        expect(out.content[0].text).toContain('ask the user to type one')
+        expect(out.content[0].text).toContain('ChatGPT’s native choice selector')
+        expect(out.content[0].text).toContain('If a native selector is unavailable')
         expect(out.structuredContent).toBeUndefined()
         expect(global.fetch).toHaveBeenCalledTimes(2)
         expect(global.fetch.mock.calls[0][0].toString()).toBe(

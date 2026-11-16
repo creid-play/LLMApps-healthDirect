@@ -1,8 +1,5 @@
-function textResult (text, structuredContent) {
-    return {
-        content: [{ type: 'text', text }],
-        structuredContent
-    }
+function textResult (text) {
+    return { content: [{ type: 'text', text }] }
 }
 
 module.exports = async (args = {}) => {
@@ -28,7 +25,10 @@ module.exports = async (args = {}) => {
     const choices = options.map(option => `- ${option.label} (value: ${option.value})`).join('\n')
 
     return textResult(
-        `Render the following single form question with the attached choice widget. Wait for the user to click an answer; do not ask them to type an option.\n${question}\n${choices}`,
-        { type: 'choice', fieldName, question, options }
+        `Present this form question with ChatGPT's native choice selector, not a widget. ` +
+        'Use each option label exactly as written and preserve its associated submitted value. ' +
+        'If a native selector is unavailable, show the options in chat and ask the user to choose. ' +
+        'Do not select an answer for the user.\n' +
+        `${question} (field: ${fieldName})\n${choices}`
     )
 }

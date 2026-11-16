@@ -232,11 +232,10 @@ async function discoverForms (baseUrl) {
         'to open a small business, suggest the loan application, account application, and point-of-sale ' +
         'application when those forms are available. Do not invent forms that are not listed. Guide the ' +
         'user through relevant form questions one at a time. Whenever a field has predefined options, ' +
-        'you MUST call the separate aem-forms-choice tool with the question, fieldName, and every exact ' +
-        'label/value option returned by discovery. This render tool is mapped to the choice widget; let ' +
-        'it render, and wait for the user to click an option. Do not list the choices in prose or ask the ' +
-        'user to type one. Continue with the clicked value, and obtain explicit confirmation of all ' +
-        'answers before calling submit. The choice widget does not submit forms.'
+        'present them with ChatGPT’s native choice selector, preserving every exact label and submitted ' +
+        'value from discovery. Do not call a widget or choose an answer for the user. If a native selector ' +
+        'is unavailable, list the exact options in chat and ask the user to choose. Continue with the ' +
+        'selected value, and obtain explicit confirmation of all answers before calling submit.'
     )
 }
 

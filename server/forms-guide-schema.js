@@ -5,7 +5,7 @@ const FORMS_GUIDE_INPUT_PROPERTIES = {
     operation: {
         type: 'string',
         enum: ['discover', 'present-choice', 'submit'],
-        description: 'Use discover to list forms and their questions. Choose relevant forms, then guide the user through questions one at a time. Whenever a field has predefined choices, call aem-forms-choice to render the choice widget. For compatibility, present-choice is also accepted here and renders the same widget. Do not show choices as prose or ask the user to type one. Continue with the selected value. For free-text fields, ask in chat. Submit only after the user explicitly confirms all collected answers.'
+        description: 'Use discover to list forms and their questions. Choose relevant forms, then guide the user through questions one at a time. Whenever a field has predefined choices, present them with ChatGPT’s native choice selector. Do not call or expect a widget. If the host has no native selector, list the exact options in chat and ask the user to choose one. Preserve the selected option’s exact submitted value. For free-text fields, ask in chat. Submit only after the user explicitly confirms all collected answers.'
     },
     fieldName: {
         type: 'string',
@@ -13,7 +13,7 @@ const FORMS_GUIDE_INPUT_PROPERTIES = {
     },
     question: {
         type: 'string',
-        description: 'The current form question to show in the choice widget; required for present-choice.'
+        description: 'The current form question to present with ChatGPT’s native choice selector; required for present-choice.'
     },
     options: {
         type: 'array',
@@ -44,7 +44,7 @@ const FORMS_GUIDE_INPUT_PROPERTIES = {
 const FORMS_CHOICE_INPUT_PROPERTIES = {
     question: {
         type: 'string',
-        description: 'The current form question to show in the widget.'
+        description: 'The form question to present with ChatGPT’s native choice selector.'
     },
     fieldName: {
         type: 'string',
@@ -52,7 +52,7 @@ const FORMS_CHOICE_INPUT_PROPERTIES = {
     },
     options: {
         type: 'array',
-        description: 'All predefined answer choices from discovery, each with its exact display label and submitted value.',
+        description: 'All predefined answer choices from discovery, each with its exact display label and submitted value. Present them using ChatGPT’s native choice selector; if unavailable, show the exact options in chat and ask the user to choose.',
         items: {
             type: 'object',
             properties: {
@@ -64,7 +64,27 @@ const FORMS_CHOICE_INPUT_PROPERTIES = {
     }
 }
 
-const FORMS_CHOICE_DESCRIPTION = 'MANDATORY render tool: Call this after aem-forms-guide discovers a form question with predefined options. Pass the current question, exact fieldName, and every option’s display label and submitted value. This tool renders those options as clickable buttons; wait for the user to choose one and continue using its exact value. Do not list the choices in prose or ask the user to type an answer.'
+const FORMS_CHOICE_DESCRIPTION = 'Use this tool when presenting a form question with predefined choices. It does not render a widget. Present the question and options with ChatGPT’s native choice selector, preserving each exact label and submitted value. If the host does not provide a native selector, show the options in chat and ask the user to choose. Never invent or alter options.'
+const FORMS_GUIDE_DESCRIPTION = 'When asking a form question with predefined choices, use ChatGPT’s native choice selector, not a widget. If the host has no native selector, show the exact options in chat and ask the user to choose. Preserve each exact submitted value and never invent options. Obtain explicit confirmation before submitting answers.'
+
+function withoutWidgetMetadata (action) {
+    const toolMeta = { ...action.tool_meta }
+    delete toolMeta['openai/outputTemplate']
+    delete toolMeta['openai/resultCanProduceWidget']
+    delete toolMeta['openai/widgetAccessible']
+    delete toolMeta['ui/resourceUri']
+
+    if (toolMeta.ui) {
+        const { resourceUri, ...ui } = toolMeta.ui
+        if (Object.keys(ui).length) toolMeta.ui = ui
+        else delete toolMeta.ui
+    }
+
+    const updatedAction = { ...action }
+    if (Object.keys(toolMeta).length) updatedAction.tool_meta = toolMeta
+    else delete updatedAction.tool_meta
+    return updatedAction
+}
 
 function ensureFormsGuideInputSchema (actionsConfig, availableActionNames = []) {
     const configuredActions = Array.isArray(actionsConfig?.actions)
@@ -80,15 +100,10 @@ function ensureFormsGuideInputSchema (actionsConfig, availableActionNames = []) 
             if (action?.name === FORMS_GUIDE_NAME) {
                 const existingSchema = action.inputSchema || {}
                 return {
-                    ...action,
-                    tool_meta: {
-                        ...action.tool_meta,
-                        ui: {
-                            visibility: ['model', 'app'],
-                            ...action.tool_meta?.ui
-                        },
-                        'openai/widgetAccessible': true
-                    },
+                    ...withoutWidgetMetadata(action),
+                    description: action.description?.includes('ChatGPT’s native choice selector')
+                        ? action.description
+                        : `${action.description || ''} ${FORMS_GUIDE_DESCRIPTION}`.trim(),
                     inputSchema: {
                         ...existingSchema,
                         type: 'object',
@@ -104,19 +119,11 @@ function ensureFormsGuideInputSchema (actionsConfig, availableActionNames = []) 
             if (action?.name === FORMS_CHOICE_NAME) {
                 const existingSchema = action.inputSchema || {}
                 return {
-                    ...action,
-                    title: action.title || 'Show form answer choices',
+                    ...withoutWidgetMetadata(action),
+                    title: action.title || 'Present form answer choices',
                     description: action.description
                         ? `${action.description} ${FORMS_CHOICE_DESCRIPTION}`
                         : FORMS_CHOICE_DESCRIPTION,
-                    tool_meta: {
-                        ...action.tool_meta,
-                        ui: {
-                            visibility: ['model', 'app'],
-                            ...action.tool_meta?.ui
-                        },
-                        'openai/widgetAccessible': true
-                    },
                     inputSchema: {
                         ...existingSchema,
                         type: 'object',

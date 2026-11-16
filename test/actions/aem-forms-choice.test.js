@@ -1,7 +1,7 @@
 const handler = require('../../actions/aem-forms-choice/index.js')
 
 describe('aem-forms-choice handler', () => {
-    test('returns a choice widget payload for one multiple-choice question', async () => {
+    test('returns native selector instructions and exact choices as plain text', async () => {
         const out = await handler({
             fieldName: 'owner_citizenship_status',
             question: 'What is your citizenship status?',
@@ -12,18 +12,12 @@ describe('aem-forms-choice handler', () => {
             ]
         })
 
-        expect(out.structuredContent).toEqual({
-            type: 'choice',
-            fieldName: 'owner_citizenship_status',
-            question: 'What is your citizenship status?',
-            options: [
-                { label: 'Australian citizen', value: 'citizen' },
-                { label: 'Permanent resident', value: 'permanent_resident' },
-                { label: 'Other', value: 'other' }
-            ]
-        })
-        expect(out.content[0].text).toContain('attached choice widget')
-        expect(out.content[0].text).toContain('do not ask them to type an option')
+        expect(out.structuredContent).toBeUndefined()
+        expect(out.content[0].text).toContain("ChatGPT's native choice selector, not a widget")
+        expect(out.content[0].text).toContain('What is your citizenship status? (field: owner_citizenship_status)')
+        expect(out.content[0].text).toContain('Australian citizen (value: citizen)')
+        expect(out.content[0].text).toContain('Permanent resident (value: permanent_resident)')
+        expect(out.content[0].text).toContain('Other (value: other)')
     })
 
     test.each([
