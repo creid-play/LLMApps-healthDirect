@@ -1,8 +1,17 @@
 const { createMain } = require('@adobe/llm-apps-runtime')
 const { ensureFormsGuideInputSchema } = require('../server/forms-guide-schema')
+const fs = require('fs')
 
 const path = require('path')
 const ACTIONS_DIR = path.join(__dirname, '..', 'actions')
+const CHOICE_WIDGET_PATH = path.join(ACTIONS_DIR, 'aem-forms-guide', 'widget.html')
+
+function widgetContext () {
+    const widgetHtml = fs.readFileSync(CHOICE_WIDGET_PATH, 'utf8')
+    const context = () => widgetHtml
+    context.keys = () => ['./aem-forms-guide/widget.html']
+    return context
+}
 
 function mcpPost (main, body) {
     return main({
@@ -39,7 +48,7 @@ describe('AEM Forms guide MCP registration', () => {
         moduleContext.keys = () => ['./aem-forms-guide/index.js']
         const main = createMain({
             moduleContext,
-            htmlContext: { keys: () => [] },
+            htmlContext: widgetContext(),
             actionsConfig,
             serverName: 'forms-guide-registration-test'
         }).main
@@ -61,15 +70,31 @@ describe('AEM Forms guide MCP registration', () => {
         expect(tool.inputSchema.properties.operation.enum).toEqual(['discover', 'present-choice', 'submit'])
         expect(tool.inputSchema.properties.operation.description).toContain('you MUST call aem-forms-guide')
         expect(tool.inputSchema.properties.operation.description).toContain('dropdown, select, radio group')
-        expect(tool.inputSchema.properties.operation.description).toContain('Do not present these options as a text list')
+        expect(tool.inputSchema.properties.operation.description).toContain('present these options as a text list')
         expect(tool.inputSchema.properties.operation.description).toContain('until the user clicks a choice')
+        expect(tool.inputSchema.properties.operation.description).toContain('structuredContent.type "choice"')
         expect(tool.inputSchema.properties.operation.description).toContain('explicitly confirms')
+        expect(tool._meta['openai/outputTemplate']).toBe('ui://aem-forms-guide/widget.html')
+        expect(tool._meta['openai/resultCanProduceWidget']).toBe(true)
+        expect(tool._meta['openai/widgetAccessible']).toBe(true)
+        expect(tool._meta.ui.resourceUri).toBe('ui://aem-forms-guide/widget.html')
+        expect(tool._meta.ui.visibility).toEqual(['model', 'app'])
         expect(tool.inputSchema.properties.fieldName.type).toBe('string')
         expect(tool.inputSchema.properties.question.type).toBe('string')
         expect(tool.inputSchema.properties.options.type).toBe('array')
         expect(tool.inputSchema.properties.formId.type).toBe('string')
         expect(tool.inputSchema.properties.answers).toBeDefined()
         expect(tool.inputSchema.properties.extraField.type).toBe('string')
+
+        const resourceList = await mcpPost(main, {
+            jsonrpc: '2.0',
+            id: 4,
+            method: 'resources/list',
+            params: {}
+        })
+        expect(JSON.parse(resourceList.body).result.resources).toContainEqual(
+            expect.objectContaining({ uri: 'ui://aem-forms-guide/widget.html' })
+        )
 
         const called = await mcpPost(main, {
             jsonrpc: '2.0',
@@ -111,7 +136,7 @@ describe('AEM Forms guide MCP registration', () => {
         moduleContext.keys = () => ['./aem-forms-guide/index.js']
         const main = createMain({
             moduleContext,
-            htmlContext: { keys: () => [] },
+            htmlContext: widgetContext(),
             actionsConfig,
             serverName: 'forms-guide-choice-test'
         }).main
@@ -143,6 +168,16 @@ describe('AEM Forms guide MCP registration', () => {
                 { label: 'Personal', value: 'personal' }
             ]
         })
+
+        const resource = await mcpPost(main, {
+            jsonrpc: '2.0',
+            id: 5,
+            method: 'resources/read',
+            params: { uri: 'ui://aem-forms-guide/widget.html' }
+        })
+        const widget = JSON.parse(resource.body).result.contents[0].text
+        expect(widget).toContain('output?.type !== \'choice\'')
+        expect(widget).toContain('window.openai.toolOutput')
     })
 
     test('adds the forms action and schema when action metadata is empty', () => {
