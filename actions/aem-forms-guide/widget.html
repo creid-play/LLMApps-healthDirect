@@ -26,8 +26,69 @@
     <script>
       (async () => {
         const root = document.getElementById('root')
+
+        function connectToHost () {
+          const requestId = `forms-guide-widget-${Date.now()}`
+          let resolveResult
+          let rejectResult
+          let resolveToolResult
+          const initializeResult = new Promise((resolve, reject) => {
+            resolveResult = resolve
+            rejectResult = reject
+          })
+          const toolResult = new Promise(resolve => {
+            resolveToolResult = resolve
+          })
+
+          function onMessage (event) {
+            if (event.source !== window.parent || !event.data || event.data.jsonrpc !== '2.0') return
+            if (event.data.id === requestId) {
+              if (event.data.error) {
+                rejectResult(new Error(event.data.error.message || 'MCP Apps initialization failed'))
+              } else {
+                resolveResult(event.data.result)
+              }
+            }
+            if (event.data.method === 'ui/notifications/tool-result') {
+              const params = event.data.params
+              const result = params?.result || params
+              resolveToolResult(result?.structuredContent || result)
+            }
+          }
+
+          window.addEventListener('message', onMessage)
+          window.parent.postMessage({
+            jsonrpc: '2.0',
+            id: requestId,
+            method: 'ui/initialize',
+            params: {
+              protocolVersion: '2025-11-25',
+              appInfo: { name: 'AEM Forms Guide Choice', version: '1.0.0' },
+              appCapabilities: {}
+            }
+          }, '*')
+
+          const timeout = new Promise((resolve, reject) => {
+            window.setTimeout(() => reject(new Error('Timed out waiting for MCP Apps initialization')), 5000)
+          })
+
+          return Promise.race([initializeResult, timeout]).then(() => {
+            window.parent.postMessage({
+              jsonrpc: '2.0',
+              method: 'ui/notifications/initialized'
+            }, '*')
+
+            const output = window.openai?.toolOutput
+            return output
+              ? Promise.resolve(output)
+              : toolResult
+          }).finally(() => {
+            window.removeEventListener('message', onMessage)
+          })
+        }
+
         try {
-          const output = await window.openai.toolOutput
+          const output = await connectToHost()
           if (output?.type !== 'choice' || !Array.isArray(output.options) || output.options.length < 2) {
             root.textContent = 'No answer choices were provided.'
             return

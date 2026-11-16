@@ -105,6 +105,16 @@ describe('AEM Forms guide MCP registration', () => {
         expect(JSON.parse(resourceList.body).result.resources).toContainEqual(
             expect.objectContaining({ uri: 'ui://aem-forms-guide/widget.html' })
         )
+        const guideResource = await mcpPost(main, {
+            jsonrpc: '2.0',
+            id: 5,
+            method: 'resources/read',
+            params: { uri: 'ui://aem-forms-guide/widget.html' }
+        })
+        const guideWidget = JSON.parse(guideResource.body).result.contents[0].text
+        expect(guideWidget).toContain("method: 'ui/initialize'")
+        expect(guideWidget).toContain("method: 'ui/notifications/initialized'")
+        expect(guideWidget).toContain("protocolVersion: '2025-11-25'")
 
         const called = await mcpPost(main, {
             jsonrpc: '2.0',
@@ -180,14 +190,18 @@ describe('AEM Forms guide MCP registration', () => {
 
         const resource = await mcpPost(main, {
             jsonrpc: '2.0',
-            id: 5,
+            id: 6,
             method: 'resources/read',
             params: { uri: 'ui://aem-forms-choice/widget.html' }
         })
         const widget = JSON.parse(resource.body).result.contents[0].text
         expect(widget).toContain('output?.type !== \'choice\'')
-        expect(widget).toContain('window.openai.toolOutput')
+        expect(widget).toContain('window.openai?.toolOutput')
         expect(widget).toContain('sendFollowUpMessage')
+        expect(widget).toContain("method: 'ui/initialize'")
+        expect(widget).toContain("method: 'ui/notifications/initialized'")
+        expect(widget).toContain("protocolVersion: '2025-11-25'")
+
     })
 
     test('accepts present-choice on aem-forms-guide using its registered schema and widget', async () => {
