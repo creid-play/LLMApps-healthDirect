@@ -82,12 +82,15 @@ The deploy pipeline clones your repo, fetches the latest metadata from the API, 
 
 ## AEM Forms guide action
 
-The `aem-forms-guide` action has two operations. Call `discover` explicitly to list forms. If `operation` is omitted but submission arguments are present, the handler infers `submit`. If both the operation and submission arguments are missing, the handler returns an error instead of silently listing forms:
+The `aem-forms-guide` action has three operations: `discover`, `present-choice`, and `submit`. Call `discover` explicitly to list forms. If `operation` is omitted but submission arguments are present, the handler infers `submit`. If both the operation and submission arguments are missing, the handler returns an error instead of silently listing forms:
 
-1. Call `discover` to list published forms, retrieve each form definition, and return its questions and available options. Use that information to help the user choose a form, then ask its questions one at a time in order.
-2. Review the collected answers with the user. Only after the user confirms, call `submit` with `operation: "submit"`, the returned `formId`, and an `answers` object keyed by the form's field names. The handler also accepts the legacy `answersJson` JSON string and infers `submit` if `formId`, `answers`, or `answersJson` is present but `operation` was omitted.
+1. Call `discover` to list published forms, retrieve each form definition, and return its questions and available options. The LLM decides which relevant forms the user should complete, suggests related forms from the discovered list (for example, loan, account, and point-of-sale applications for opening a small business), then guides the user through one form at a time. Do not suggest forms that were not discovered.
+2. Ask the selected form's questions one at a time. For a question with predefined values, call `aem-forms-guide` with `operation: "present-choice"`, the question's field name, question text, and exact label/value options from discovery. The attached widget shows only that question's choices as clickable buttons. Do not use the widget to list forms or walk through the entire form; do not ask the user to type a predefined choice when the widget is available. For free-text questions, ask in the conversation as usual.
+3. Use the answer selected in the widget to continue to the next question. After collecting answers, summarize them and ask the user to explicitly confirm. Only after confirmation, call `submit` with `operation: "submit"`, the returned `formId`, and an `answers` object keyed by the form's field names. The widget never submits to AEM itself. The handler also accepts the legacy `answersJson` JSON string and infers `submit` if `formId`, `answers`, or `answersJson` is present but `operation` was omitted.
 
-The server enforces the `operation`, `formId`, `answers`, and legacy `answersJson` properties at registration so those arguments are exposed to MCP clients even if the downloaded action metadata is incomplete. Keep the same schema configured in the LLM Apps UI so the published tool metadata stays aligned. The `operation` property is required; `formId` and `answers` are required by the handler for submit calls. Without a registered schema, the MCP runtime may omit or strip tool-call arguments before they reach the handler. For example:
+The self-contained widget lives in [`actions/aem-forms-guide/widget.html`](actions/aem-forms-guide/widget.html) and uses the ChatGPT Apps bridge (`window.openai.toolOutput` and `window.openai.sendFollowupTurn`). It renders only a single multiple-choice question when the assistant calls `present-choice`; it does not display a form list or collect an entire form. The LLM Apps UI metadata must enable the widget for this action; download the updated `actions.json` after configuring it. In the action's UI description, instruct downstream models to decide relevant forms, ask questions sequentially, invoke `present-choice` for predefined options, and never submit before the user confirms the answer summary.
+
+The server enforces the `operation`, `fieldName`, `question`, `options`, `formId`, `answers`, and legacy `answersJson` properties at registration so those arguments are exposed to MCP clients even if the downloaded action metadata is incomplete. Keep the same schema configured in the LLM Apps UI so the published tool metadata stays aligned. The `operation` property is required; `fieldName`, `question`, and `options` are required by the handler for `present-choice`; `formId` and `answers` are required for submit calls. Without a registered schema, the MCP runtime may omit or strip tool-call arguments before they reach the handler. For example:
 
 ```json
 {
@@ -95,8 +98,28 @@ The server enforces the `operation`, `formId`, `answers`, and legacy `answersJso
   "properties": {
     "operation": {
       "type": "string",
-      "enum": ["discover", "submit"],
-      "description": "Use discover to list forms or submit to send user-confirmed answers."
+      "enum": ["discover", "present-choice", "submit"],
+      "description": "Use discover to find relevant forms and guide the user through questions one at a time. For predefined choices, call present-choice to show that single question in the widget. Call submit only after the user explicitly confirms all answers."
+    },
+    "fieldName": {
+      "type": "string",
+      "description": "The exact field name for the multiple-choice question; required for present-choice."
+    },
+    "question": {
+      "type": "string",
+      "description": "The question text to show above the choices; required for present-choice."
+    },
+    "options": {
+      "type": "array",
+      "description": "The predefined choices from form discovery, with exact labels and submitted values; required for present-choice.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": { "type": "string" },
+          "value": { "type": "string" }
+        },
+        "required": ["label", "value"]
+      }
     },
     "formId": {
       "type": "string",

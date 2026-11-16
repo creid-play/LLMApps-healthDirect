@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Choose an answer</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        line-height: 1.45;
+      }
+      body { margin: 0; padding: 12px; }
+      .question { margin: 0 0 12px; font-size: 1rem; font-weight: 650; }
+      .choices { display: grid; gap: 8px; }
+      button {
+        width: 100%;
+        border: 1px solid #8887;
+        border-radius: 9px;
+        padding: 12px 14px;
+        background: ButtonFace;
+        color: ButtonText;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+      button:hover:not(:disabled) { border-color: #3578e5; }
+      button:focus-visible { outline: 2px solid #3578e5; outline-offset: 2px; }
+      button:disabled { cursor: default; opacity: .7; }
+      .status { min-height: 1.4em; margin: 10px 0 0; }
+      .error { color: #b42318; }
+      @media (prefers-color-scheme: dark) {
+        .error { color: #ff8a80; }
+      }
+    </style>
+  </head>
+  <body>
+    <main id="root" aria-live="polite">Loading answer choices…</main>
+    <script>
+      (async () => {
+        const root = document.getElementById('root')
+
+        try {
+          const output = await window.openai.toolOutput
+          if (output?.type !== 'choice' || !Array.isArray(output.options) || output.options.length < 2) {
+            root.textContent = ''
+            return
+          }
+
+          const question = document.createElement('p')
+          question.className = 'question'
+          question.textContent = output.question
+          root.replaceChildren(question)
+
+          const choices = document.createElement('div')
+          choices.className = 'choices'
+          choices.setAttribute('role', 'group')
+          choices.setAttribute('aria-label', output.question)
+          const status = document.createElement('p')
+          status.className = 'status'
+          status.setAttribute('role', 'status')
+
+          output.options.forEach(option => {
+            const button = document.createElement('button')
+            button.type = 'button'
+            button.textContent = option.label
+            button.addEventListener('click', async () => {
+              const sendFollowupTurn = window.openai?.sendFollowupTurn
+              if (typeof sendFollowupTurn !== 'function') {
+                status.textContent = 'This host cannot send the selected answer to the assistant. Please reply in the chat.'
+                status.classList.add('error')
+                return
+              }
+
+              choices.querySelectorAll('button').forEach(choice => {
+                choice.disabled = true
+              })
+              try {
+                await sendFollowupTurn(
+                  `For the form question "${output.question}" (field "${output.fieldName}"), ` +
+                  `I selected "${option.label}". Use the exact answer value ${JSON.stringify(option.value)} ` +
+                  'and continue to the next question. Do not submit the form until I review and explicitly confirm all answers.'
+                )
+                status.textContent = `Selected: ${option.label}`
+              } catch (error) {
+                choices.querySelectorAll('button').forEach(choice => {
+                  choice.disabled = false
+                })
+                status.textContent = `Could not send this answer: ${error.message || 'unknown error'}`
+                status.classList.add('error')
+              }
+            })
+            choices.append(button)
+          })
+
+          root.append(choices, status)
+        } catch (error) {
+          root.textContent = `Could not load answer choices: ${error.message || 'tool output unavailable'}`
+        }
+      })()
+    </script>
+  </body>
+</html>

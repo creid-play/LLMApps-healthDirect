@@ -61,7 +61,10 @@ describe('aem-forms-guide handler', () => {
                             name: 'plan',
                             fieldType: 'drop-down',
                             label: { value: 'Plan type' },
-                            options: [{ label: 'Basic', value: 'basic' }, { label: 'Plus', value: 'plus' }]
+                            options: [
+                                { label: { value: 'Basic' }, value: { value: 'basic' } },
+                                { label: 'Plus', value: 'plus' }
+                            ]
                         },
                         submit: {
                             name: 'submitButton',
@@ -80,6 +83,12 @@ describe('aem-forms-guide handler', () => {
         expect(out.content[0].text).toContain(`formId: ${expectedFormId}`)
         expect(out.content[0].text).toMatch(/1\. First name \(required\).*2\. Plan type/s)
         expect(out.content[0].text).toContain('options: Basic, Plus')
+        expect(out.content[0].text).toContain(
+            'suggest the loan application, account application, and point-of-sale application when those forms are available'
+        )
+        expect(out.content[0].text).toContain('Do not invent forms that are not listed.')
+        expect(out.content[0].text).toContain('ask the user to type a predefined choice')
+        expect(out.structuredContent).toBeUndefined()
         expect(global.fetch).toHaveBeenCalledTimes(2)
         expect(global.fetch.mock.calls[0][0].toString()).toBe(
             'https://publish-p206352-e2156078.adobeaemcloud.com/adobe/forms/af/listforms'
@@ -88,6 +97,42 @@ describe('aem-forms-guide handler', () => {
             `https://publish-p206352-e2156078.adobeaemcloud.com/adobe/forms/${expectedFormId}`
         )
         expect(global.fetch.mock.calls.every(([, options]) => !options?.headers?.authorization)).toBe(true)
+    })
+
+    test('returns only one multiple-choice question for the widget', async () => {
+        global.fetch = jest.fn()
+
+        const out = await handler({
+            operation: 'present-choice',
+            fieldName: 'plan',
+            question: 'Which plan do you want?',
+            options: [
+                { label: 'Basic', value: 'basic' },
+                { label: 'Plus', value: 'plus' }
+            ]
+        })
+
+        expect(out.structuredContent).toEqual({
+            type: 'choice',
+            fieldName: 'plan',
+            question: 'Which plan do you want?',
+            options: [
+                { label: 'Basic', value: 'basic' },
+                { label: 'Plus', value: 'plus' }
+            ]
+        })
+        expect(out.content[0].text).toContain('Do not ask them to type an option')
+        expect(out.structuredContent).not.toHaveProperty('forms')
+        expect(global.fetch).not.toHaveBeenCalled()
+    })
+
+    test('validates multiple-choice widget inputs', async () => {
+        await expect(handler({
+            operation: 'present-choice',
+            fieldName: 'plan',
+            question: 'Which plan?',
+            options: [{ label: 'Basic', value: 'basic' }]
+        })).rejects.toThrow('options must contain at least two choices')
     })
 
     test('follows list pagination cursors', async () => {
@@ -99,6 +144,7 @@ describe('aem-forms-guide handler', () => {
         const out = await handler({ operation: 'discover' })
 
         expect(out.content[0].text).toMatch(/No published Adaptive Forms/)
+        expect(out.structuredContent).toBeUndefined()
         const nextPageUrl = global.fetch.mock.calls[1][0]
         expect(nextPageUrl.searchParams.get('cursor')).toBe('page-two')
         expect(nextPageUrl.searchParams.get('limit')).toBe('2')

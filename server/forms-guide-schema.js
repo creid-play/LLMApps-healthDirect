@@ -3,8 +3,28 @@ const FORMS_GUIDE_NAME = 'aem-forms-guide'
 const FORMS_GUIDE_INPUT_PROPERTIES = {
     operation: {
         type: 'string',
-        enum: ['discover', 'submit'],
-        description: 'Use discover to list forms or submit to send user-confirmed answers.'
+        enum: ['discover', 'present-choice', 'submit'],
+        description: 'Use discover to find relevant forms and guide the user through questions one at a time. For a question with predefined choices, call present-choice with its fieldName, question, and exact options to show the choices in the attached widget. Use submit only after the user explicitly confirms all answers.'
+    },
+    fieldName: {
+        type: 'string',
+        description: 'The exact field name for the multiple-choice question; required for present-choice.'
+    },
+    question: {
+        type: 'string',
+        description: 'The question text to show above the choices; required for present-choice.'
+    },
+    options: {
+        type: 'array',
+        description: 'The predefined choices from form discovery; pass each as an object with its display label and exact submitted value. Required for present-choice.',
+        items: {
+            type: 'object',
+            properties: {
+                label: { type: 'string' },
+                value: { type: 'string' }
+            },
+            required: ['label', 'value']
+        }
     },
     formId: {
         type: 'string',
