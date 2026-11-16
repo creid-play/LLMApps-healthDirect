@@ -4,7 +4,7 @@ const FORMS_GUIDE_INPUT_PROPERTIES = {
     operation: {
         type: 'string',
         enum: ['discover', 'present-choice', 'submit'],
-        description: 'Use discover to find relevant forms and guide the user through questions one at a time. For a question with predefined choices, call present-choice with its fieldName, question, and exact options to show the choices in the attached widget. Use submit only after the user explicitly confirms all answers.'
+        description: 'MANDATORY: When guiding the user through a form, ask questions one at a time. Whenever the current field is a dropdown, select, radio group, or any question with predefined options, you MUST call aem-forms-guide with operation "present-choice", fieldName, the question text, and every exact label/value option from discovery. This displays the answer buttons. Do not present these options as a text list, ask the user to type an option, skip the widget, or move to the next question until the user clicks a choice. Record the clicked option’s exact value and continue. For free-text fields, ask in chat. First use discover to choose relevant forms; submit only after the user explicitly confirms all collected answers.'
     },
     fieldName: {
         type: 'string',
